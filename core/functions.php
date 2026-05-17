@@ -1,105 +1,116 @@
 <?php
-// Helper Functions
+// =====================================================
+// Load database connection and start session
+// =====================================================
+require_once 'db.php';
+session_start();
 
-// Check if user is logged in
+// =====================================================
+// AUTH FUNCTIONS
+// =====================================================
+
+// Check if the user is logged in
 function isLoggedIn() {
-    return isset($_SESSION['user_id']);
+    return isset($_SESSION['user']);
 }
 
-// Get current user
-function getCurrentUser() {
-    if (isLoggedIn()) {
-        global $db;
-        return $db->fetch("SELECT * FROM users WHERE id = " . $_SESSION['user_id']);
-    }
-    return null;
+// Get the current logged-in user data, returns null if not logged in
+function currentUser() {
+    return $_SESSION['user'] ?? null;
 }
 
-// Format price
-function formatPrice($price) {
-    return number_format($price, 2, '.', '') . ' MAD';
+// Check if the current user is an admin
+function isAdmin() {
+    return isset($_SESSION['user']) && $_SESSION['user']['role'] === 'admin';
 }
 
-// Sanitize input
-function sanitize($data) {
-    if (is_array($data)) {
-        return array_map('sanitize', $data);
-    }
-    return htmlspecialchars(trim($data), ENT_QUOTES, 'UTF-8');
+// Destroy the session and redirect to login page
+function logout() {
+    session_destroy();
+    redirect('../views/login.php');
 }
 
-// Redirect
+// Redirect the user to a given URL and stop code execution
 function redirect($url) {
-    header("Location: " . $url);
+    header("Location: $url");
     exit();
 }
 
-// Flash message
-function setFlash($key, $message) {
-    $_SESSION['flash'][$key] = $message;
+// Sanitize user input to prevent XSS attacks
+function sanitize($input) {
+    return htmlspecialchars(strip_tags(trim($input)));
 }
 
-function getFlash($key) {
-    if (isset($_SESSION['flash'][$key])) {
-        $message = $_SESSION['flash'][$key];
-        unset($_SESSION['flash'][$key]);
-        return $message;
-    }
-    return null;
+// =====================================================
+// CART FUNCTIONS
+// =====================================================
+
+// Add a book to the cart, returns false if already exists
+function addToCart($user_id, $book_id, $type, $rental_months = null, $quantity = 1) {
+    global $pdo;
+    // Check if the book is already in the cart
+    $stmt = $pdo->prepare("SELECT * FROM cart WHERE id_user = ? AND book_id = ? AND type = ?");
+    $stmt->execute([$user_id, $book_id, $type]);
+    if ($stmt->fetch()) return false;
+
+    // Insert the book into the cart
+    $stmt = $pdo->prepare("INSERT INTO cart (id_user, book_id, type, rental_months, quantity) VALUES (?, ?, ?, ?, ?)");
+    return $stmt->execute([$user_id, $book_id, $type, $rental_months, $quantity]);
 }
 
-// Generate unique order number
-function generateOrderNumber() {
-    return 'ORD-' . date('YmdHis') . '-' . rand(1000, 9999);
+// Get all cart items for a specific user
+function getCart($user_id) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT * FROM cart WHERE id_user = ?");
+    $stmt->execute([$user_id]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
-// Format date
-function formatDate($date, $format = 'Y-m-d H:i') {
-    return date($format, strtotime($date));
+// Remove a specific item from the cart
+function removeFromCart($id_cart, $user_id) {
+    global $pdo;
+    $stmt = $pdo->prepare("DELETE FROM cart WHERE id_cart = ? AND id_user = ?");
+    return $stmt->execute([$id_cart, $user_id]);
 }
 
-// Check if email exists
-function emailExists($email) {
-    global $db;
-    $result = $db->fetch("SELECT id FROM users WHERE email = '" . $db->escape($email) . "'");
-    return $result ? true : false;
+// Clear all items from the cart for a specific user
+function clearCart($user_id) {
+    global $pdo;
+    $stmt = $pdo->prepare("DELETE FROM cart WHERE id_user = ?");
+    return $stmt->execute([$user_id]);
 }
 
-// Hash password
-function hashPassword($password) {
-    return password_hash($password, PASSWORD_DEFAULT);
+// =====================================================
+// ORDER FUNCTIONS
+// =====================================================
+
+// Create a new buy order and save it to the database
+function createBuyOrder($id_user, $book_id, $name, $city, $phone, $quantity, $total_price) {
+    global $pdo;
+    $stmt = $pdo->prepare("INSERT INTO orders_buy (id_user, book_id, name_buy, city, phone_number, quantity, total_price) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    return $stmt->execute([$id_user, $book_id, $name, $city, $phone, $quantity, $total_price]);
 }
 
-// Verify password
-function verifyPassword($password, $hash) {
-    return password_verify($password, $hash);
+// Create a new rental order and save it to the database
+function createRentalOrder($id_user, $book_id, $name, $city, $phone, $rental_months, $total_price, $start_date, $end_date) {
+    global $pdo;
+    $stmt = $pdo->prepare("INSERT INTO orders_rental (id_user, book_id, name_rental, city, phone_number, rental_months, total_price, start_date, end_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    return $stmt->execute([$id_user, $book_id, $name, $city, $phone, $rental_months, $total_price, $start_date, $end_date]);
 }
 
-// Get cart count
-function getCartCount() {
-    if (!isLoggedIn()) {
-        return 0;
-    }
-    global $db;
-    $result = $db->fetch("SELECT COUNT(*) as count FROM cart WHERE user_id = " . $_SESSION['user_id']);
-    return $result['count'] ?? 0;
-}
+// Get all orders (buy + rental) for a specific user
+function getUserOrders($user_id) {
+    global $pdo;
+    // Get all buy orders
+    $buy = $pdo->prepare("SELECT *, 'buy' as order_type FROM orders_buy WHERE id_user = ? ORDER BY created_at DESC");
+    $buy->execute([$user_id]);
 
-// Get cart total
-function getCartTotal() {
-    if (!isLoggedIn()) {
-        return 0;
-    }
-    global $db;
-    $result = $db->fetch("
-        SELECT SUM(CASE 
-            WHEN cart.type = 'buy' THEN books.buy_price * cart.quantity
-            ELSE books.rent_price * cart.quantity
-        END) as total
-        FROM cart
-        JOIN books ON cart.book_id = books.id
-        WHERE cart.user_id = " . $_SESSION['user_id']
-    );
-    return $result['total'] ?? 0;
+    // Get all rental orders
+    $rent = $pdo->prepare("SELECT *, 'rental' as order_type FROM orders_rental WHERE id_user = ? ORDER BY created_at DESC");
+    $rent->execute([$user_id]);
+
+    return [
+        'buy'    => $buy->fetchAll(PDO::FETCH_ASSOC),
+        'rental' => $rent->fetchAll(PDO::FETCH_ASSOC)
+    ];
 }
-?>
