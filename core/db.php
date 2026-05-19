@@ -1,16 +1,22 @@
 <?php
 
+$host   = 'localhost';
+$dbname = 'library';
+$username = 'root';
+$password = '';
 
-$host = "localhost";
-$dbname = "library";
-$username = "root";
-$password = "";
-
-
-try{
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname;", $username, $password);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $pdo->exec("SET NAMES 'utf8'");
-}catch(PDOException $e){
-    echo "Connection failed:" .$e->getMessage();
+try {
+    $pdo = new PDO(
+        "mysql:host={$host};dbname={$dbname};charset=utf8mb4",
+        $username,
+        $password,
+        [
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES   => false,
+        ]
+    );
+} catch (PDOException $e) {
+    http_response_code(500);
+    die(json_encode(['success' => false, 'message' => 'Database connection failed.']));
 }

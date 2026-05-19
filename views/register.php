@@ -1,32 +1,46 @@
 <?php
 require_once '../core/functions.php';
 
+// Already logged in → redirect
+if (isLoggedIn()) {
+    redirect('catalogue.php');
+}
+
 $error   = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $name     = sanitize($_POST['username']);
-    $email    = sanitize($_POST['email']);
-    $password = $_POST['password'];
+    $name     = sanitize($_POST['username'] ?? '');
+    $email    = sanitize($_POST['email']    ?? '');
+    $password = $_POST['password'] ?? '';
 
-    // Check if email already exists
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
-    $stmt->execute([$email]);
-
-    if ($stmt->fetch()) {
-        $error = "This email is already registered!";
+    if (strlen($password) < 6) {
+        $error = "Password must be at least 6 characters.";
     } else {
-        // Hash password before saving
-        $hashed = password_hash($password, PASSWORD_DEFAULT);
+        // Check if email already exists
+        $stmt = $pdo->prepare("SELECT id_user FROM users WHERE email = ?");
+        $stmt->execute([$email]);
 
-        // Insert new user
-        $stmt = $pdo->prepare("INSERT INTO users (name_user, email, password) VALUES (?, ?, ?)");
-
-        if ($stmt->execute([$name, $email, $hashed])) {
-            redirect('catalogue.php');
+        if ($stmt->fetch()) {
+            $error = "This email is already registered.";
         } else {
-            $error = "Something went wrong. Please try again.";
+            $hashed = password_hash($password, PASSWORD_DEFAULT);
+
+            $stmt = $pdo->prepare(
+                "INSERT INTO users (name_user, email, password) VALUES (?, ?, ?)"
+            );
+
+            if ($stmt->execute([$name, $email, $hashed])) {
+                // Auto login after register
+                $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
+                $stmt->execute([$email]);
+                $_SESSION['user'] = $stmt->fetch();
+
+                redirect('catalogue.php');
+            } else {
+                $error = "Something went wrong. Please try again.";
+            }
         }
     }
 }
@@ -37,21 +51,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register — Library</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body>
 
-    <?php if ($error) { ?>
-    <p style="color:red"><?= $error ?></p>
-<?php } ?>
+<div class="form-wrapper">
+    <div class="form-box">
+        <h1>📚 Library</h1>
+        <p class="subtitle">Create a new account</p>
 
-    <form action="" method="POST">
-        <input type="text"     name="username" placeholder="Username" required><br>
-        <input type="email"    name="email"    placeholder="Email"    required><br>
-        <input type="password" name="password" placeholder="Password" required><br>
-        <button type="submit">Register</button>
-    </form>
+        <?php if ($error): ?>
+            <div class="alert alert-error">⚠️ <?= $error ?></div>
+        <?php endif; ?>
 
-    <a href="login.php">Already have an account? Login</a>
+        <form action="" method="POST">
+            <div class="form-group">
+                <label for="username">Full Name</label>
+                <input type="text" id="username" name="username"
+                       placeholder="Your name" required
+                       value="<?= sanitize($_POST['username'] ?? '') ?>">
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email"
+                       placeholder="you@example.com" required
+                       value="<?= sanitize($_POST['email'] ?? '') ?>">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password"
+                       placeholder="Min. 6 characters" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;margin-top:.5rem">
+                Create Account
+            </button>
+        </form>
+
+        <p class="form-footer-link">
+            Already have an account? <a href="login.php">Sign in</a>
+        </p>
+    </div>
+</div>
 
 </body>
 </html>

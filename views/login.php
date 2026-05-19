@@ -1,30 +1,28 @@
 <?php
 require_once '../core/functions.php';
 
+// Already logged in → redirect
+if (isLoggedIn()) {
+    redirect(isAdmin() ? '../admin/dashboard.php' : 'catalogue.php');
+}
+
 $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $email    = sanitize($_POST['email']);
-    $password = $_POST['password'];
+    $email    = sanitize($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
 
-    // Find user by email
     $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
     $stmt->execute([$email]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+    $user = $stmt->fetch();
 
     if ($user && password_verify($password, $user['password'])) {
-        // Save user in session
         $_SESSION['user'] = $user;
 
-        // Redirect based on role
-        if ($user['role'] === 'admin') {
-            redirect('../admin/dashboard.php');
-        } else {
-            redirect('catalogue.php');
-        }
+        redirect($user['role'] === 'admin' ? '../admin/dashboard.php' : 'catalogue.php');
     } else {
-        $error = "Invalid email or password!";
+        $error = "Invalid email or password.";
     }
 }
 ?>
@@ -34,20 +32,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login — Library</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body>
 
-    <?php if ($error) { ?>
-        <p style="color:red"><?= $error ?></p>
-    <?php } ?>
+<div class="form-wrapper">
+    <div class="form-box">
+        <h1>📚 Library</h1>
+        <p class="subtitle">Sign in to your account</p>
 
-    <form action="" method="POST">
-        <input type="email"    name="email"    placeholder="Email"    required><br>
-        <input type="password" name="password" placeholder="Password" required><br>
-        <button type="submit">Login</button>
-    </form>
+        <?php if ($error): ?>
+            <div class="alert alert-error">⚠️ <?= $error ?></div>
+        <?php endif; ?>
 
-    <a href="register.php">Don't have an account? Register here</a>
+        <form action="" method="POST">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email"
+                       placeholder="you@example.com" required
+                       value="<?= sanitize($_POST['email'] ?? '') ?>">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password"
+                       placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;margin-top:.5rem">
+                Sign In
+            </button>
+        </form>
+
+        <p class="form-footer-link">
+            Don't have an account? <a href="register.php">Register here</a>
+        </p>
+    </div>
+</div>
 
 </body>
 </html>
