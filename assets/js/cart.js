@@ -41,24 +41,56 @@ const displayBookInCart = (book, containerElement) => {
     const author = info.authors?.join(", ") || "Unknown";
     const cover = info.imageLinks?.thumbnail || "";
 
-    containerElement.innerHTML = `
-        ${cover ? `<img src="${cover}" alt="${title}" style="width:100%;border-radius:6px;">` : ''}
-        <h3>${title}</h3>
-        <p>${author}</p>
-    `;
+    // Clear container
+    containerElement.innerHTML = "";
+
+    // Create image safely
+    if (cover) {
+        const img = document.createElement('img');
+        img.src = cover;
+        img.alt = title;
+        img.style.width = "100%";
+        img.style.borderRadius = "6px";
+        img.onerror = () => { img.style.display = 'none'; };
+        containerElement.appendChild(img);
+    }
+
+    // Create title safely
+    const titleEl = document.createElement('h3');
+    titleEl.textContent = title; // Safe - no HTML parsing
+    containerElement.appendChild(titleEl);
+
+    // Create author safely
+    const authorEl = document.createElement('p');
+    authorEl.textContent = author; // Safe - no HTML parsing
+    containerElement.appendChild(authorEl);
 };
 
 // ── Remove Item from Cart ───────────────────────────────────────────────────
 const removeItem = async (idCart) => {
     try {
-        const response = await fetch('../api/get_cart.php', {
+        // Validate input
+        if (!idCart || isNaN(idCart)) {
+            showNotification("Invalid item ID", "error");
+            return;
+        }
+
+        // Send request to API
+        const response = await fetch('../api/get_cart.php?action=remove', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id_cart: idCart })
+            body: JSON.stringify({ id_cart: parseInt(idCart) })
         });
 
+        // Check HTTP status
+        if (!response.ok) {
+            throw new Error(`HTTP Error: ${response.status}`);
+        }
+
+        // Parse JSON
         const data = await response.json();
 
+        // Check response success
         if (data.success) {
             // Remove the item div with smooth animation
             const itemElement = document.getElementById(`cart-item-${idCart}`);
@@ -68,15 +100,19 @@ const removeItem = async (idCart) => {
                 
                 setTimeout(() => {
                     itemElement.remove();
-                    showNotification("Item removed from cart", "success");
+                    showNotification("Item removed from cart ✓", "success");
                 }, 300);
+            } else {
+                showNotification("Item removed from cart ✓", "success");
             }
         } else {
-            showNotification("Failed to remove item", "error");
+            // API returned error
+            const errorMsg = data.message || "Failed to remove item";
+            showNotification(errorMsg, "error");
         }
     } catch (error) {
         console.error("Error removing item:", error);
-        showNotification("Error removing item", "error");
+        showNotification(`Error: ${error.message || 'Unknown error'}`, "error");
     }
 };
 

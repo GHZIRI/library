@@ -73,6 +73,32 @@ function getFlash(string $key): ?string {
     return null;
 }
 
+// ── CSRF Protection ───────────────────────────────────────────────────────────
+
+/**
+ * Generate a CSRF token for form security
+ */
+function generateCSRFToken(): string {
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+/**
+ * Verify CSRF token from form submission
+ */
+function verifyCSRFToken(string $token): bool {
+    return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
+}
+
+/**
+ * Get CSRF token for forms
+ */
+function getCSRFToken(): string {
+    return generateCSRFToken();
+}
+
 
 // ── Password helpers ──────────────────────────────────────────────────────────
 

@@ -12,7 +12,7 @@ if(!isAdmin()){
 
 }
 // Get all users from database
-$users = $pdo->query("SELECT * FORM usres ORDER BY created_at DESC")->fetchAll(PDO::FETCH_ASSOC);
+$users = $pdo->query("SELECT * FROM users ORDER BY created_at DESC")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 
@@ -71,6 +71,6 @@ $users = $pdo->query("SELECT * FORM usres ORDER BY created_at DESC")->fetchAll(P
                 }
             });
         }
-
+</script>
 </body>
 </html>

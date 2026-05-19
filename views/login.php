@@ -10,19 +10,24 @@ $error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $email    = sanitize($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
-
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
-    $stmt->execute([$email]);
-    $user = $stmt->fetch();
-
-    if ($user && password_verify($password, $user['password'])) {
-        $_SESSION['user'] = $user;
-
-        redirect($user['role'] === 'admin' ? '../admin/dashboard.php' : 'catalogue.php');
+    // Verify CSRF token
+    if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
+        $error = "Invalid security token. Please try again.";
     } else {
-        $error = "Invalid email or password.";
+        $email    = sanitize($_POST['email'] ?? '');
+        $password = $_POST['password'] ?? '';
+
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
+        $stmt->execute([$email]);
+        $user = $stmt->fetch();
+
+        if ($user && password_verify($password, $user['password'])) {
+            $_SESSION['user'] = $user;
+
+            redirect($user['role'] === 'admin' ? '../admin/dashboard.php' : 'catalogue.php');
+        } else {
+            $error = "Invalid email or password.";
+        }
     }
 }
 ?>
@@ -46,6 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <form action="" method="POST">
+            <input type="hidden" name="csrf_token" value="<?= getCSRFToken() ?>">
             <div class="form-group">
                 <label for="email">Email</label>
                 <input type="email" id="email" name="email"

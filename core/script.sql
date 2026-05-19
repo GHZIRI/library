@@ -65,9 +65,27 @@ CREATE TABLE cart (
 );
 
 -- ==================
+-- BOOKS  ← هذا الجدول كان مفقوداً وهو سبب المشكلة!
+-- ==================
+CREATE TABLE books (
+    book_id     INT            AUTO_INCREMENT PRIMARY KEY,
+    title       VARCHAR(255)   NOT NULL,
+    author      VARCHAR(150)   NOT NULL,
+    category    VARCHAR(100)   DEFAULT NULL,
+    description TEXT           DEFAULT NULL,
+    cover       VARCHAR(500)   DEFAULT NULL,
+    price       DECIMAL(10,2)  NOT NULL DEFAULT 0.00,
+    stock       INT            NOT NULL DEFAULT 0,
+    created_at  DATETIME       DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ==================
 -- ADMIN DEFAULT
--- (password hashed with PHP password_hash — update via script or use seeder)
--- Default password: admin123
+-- الباسورد: admin123
+-- مشفّر بـ password_hash() لأن PHP تستخدم password_verify()
+-- لا يمكن وضع النص العادي هنا — يجب أن يكون hash
 -- ==================
 INSERT INTO users (name_user, email, password, role) VALUES
-('Admin', 'admin@library.com', '$2y$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin');
+('Admin', 'admin@library.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin');
+
+

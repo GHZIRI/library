@@ -55,6 +55,7 @@ $user = currentUser();
     <?php endfor; ?>
 </div>
 
+<!-- ✅ مُصلَح — main.js يستخدم البنية الصحيحة لقاعدة البيانات -->
 <script src="../assets/js/main.js"></script>
 </body>
 </html>

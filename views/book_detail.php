@@ -70,33 +70,91 @@ $user = currentUser();
             const buy_price   = 50;
             const rent_price  = 10;
 
-            document.getElementById('bookDetail').innerHTML = `
-                <div class="book-detail-layout">
-                    <img src="${cover}" alt="${title}" onerror="this.style.display='none'">
-                    <div>
-                        <h1 class="book-detail__title">${title}</h1>
-                        <p class="book-detail__meta">✍️ ${author}</p>
-                        <p class="book-detail__desc">${description}</p>
-                        <div class="price-tags">
-                            <div class="price-tag">Buy — <span>${buy_price} DH</span></div>
-                            <div class="price-tag">Rent — <span>${rent_price} DH/month</span></div>
-                        </div>
-                        <div class="book-actions">
-                            <button class="btn btn-primary" onclick="addToCart('${book.id}', 'buy')">
-                                🛍️ Buy
-                            </button>
-                            <button class="btn btn-secondary" onclick="addToCart('${book.id}', 'rental')">
-                                📖 Rent
-                            </button>
-                            <a href="catalogue.php" class="btn btn-secondary">← Back</a>
-                        </div>
-                    </div>
-                </div>
-            `;
+            const detailDiv = document.getElementById('bookDetail');
+            detailDiv.innerHTML = '';
+
+            const layout = document.createElement('div');
+            layout.className = 'book-detail-layout';
+
+            // Image
+            if (cover) {
+                const img = document.createElement('img');
+                img.src = cover;
+                img.alt = title;
+                img.onerror = () => { img.style.display = 'none'; };
+                layout.appendChild(img);
+            }
+
+            // Content container
+            const contentDiv = document.createElement('div');
+
+            // Title
+            const titleEl = document.createElement('h1');
+            titleEl.className = 'book-detail__title';
+            titleEl.textContent = title;
+            contentDiv.appendChild(titleEl);
+
+            // Author
+            const authorEl = document.createElement('p');
+            authorEl.className = 'book-detail__meta';
+            authorEl.textContent = '✍️ ' + author;
+            contentDiv.appendChild(authorEl);
+
+            // Description
+            const descEl = document.createElement('p');
+            descEl.className = 'book-detail__desc';
+            descEl.textContent = description;
+            contentDiv.appendChild(descEl);
+
+            // Price tags
+            const priceTagsDiv = document.createElement('div');
+            priceTagsDiv.className = 'price-tags';
+
+            const buyPriceTag = document.createElement('div');
+            buyPriceTag.className = 'price-tag';
+            buyPriceTag.innerHTML = 'Buy — <span>' + buy_price + ' DH</span>';
+            priceTagsDiv.appendChild(buyPriceTag);
+
+            const rentPriceTag = document.createElement('div');
+            rentPriceTag.className = 'price-tag';
+            rentPriceTag.innerHTML = 'Rent — <span>' + rent_price + ' DH/month</span>';
+            priceTagsDiv.appendChild(rentPriceTag);
+
+            contentDiv.appendChild(priceTagsDiv);
+
+            // Actions
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'book-actions';
+
+            const buyBtn = document.createElement('button');
+            buyBtn.className = 'btn btn-primary';
+            buyBtn.textContent = '🛍️ Buy';
+            buyBtn.onclick = () => addToCart(book.id, 'buy');
+            actionsDiv.appendChild(buyBtn);
+
+            const rentBtn = document.createElement('button');
+            rentBtn.className = 'btn btn-secondary';
+            rentBtn.textContent = '📖 Rent';
+            rentBtn.onclick = () => addToCart(book.id, 'rental');
+            actionsDiv.appendChild(rentBtn);
+
+            const backLink = document.createElement('a');
+            backLink.href = 'catalogue.php';
+            backLink.className = 'btn btn-secondary';
+            backLink.textContent = '← Back';
+            actionsDiv.appendChild(backLink);
+
+            contentDiv.appendChild(actionsDiv);
+            layout.appendChild(contentDiv);
+            detailDiv.appendChild(layout);
         })
         .catch(() => {
-            document.getElementById('bookDetail').innerHTML =
-                '<p class="empty-state">Failed to load book details.</p>';
+            const detailDiv = document.getElementById('bookDetail');
+            detailDiv.innerHTML = '';
+            const errorEl = document.createElement('p');
+            errorEl.className = 'empty-state';
+            errorEl.textContent = 'Failed to load book details.';
+            detailDiv.appendChild(errorEl);
         });
 
     function addToCart(book_id, type) {
@@ -109,11 +167,22 @@ $user = currentUser();
         .then(data => {
             const alertBox = document.getElementById('alertBox');
             if (data.success) {
-                alertBox.innerHTML =
-                    '<div class="alert alert-success">✅ Added to cart successfully! <a href="cart.php" style="margin-left:auto;">View Cart</a></div>';
+                const successMsg = document.createElement('div');
+                successMsg.className = 'alert alert-success';
+                successMsg.textContent = '✅ Added to cart successfully! ';
+                const link = document.createElement('a');
+                link.href = 'cart.php';
+                link.textContent = 'View Cart';
+                link.style.marginLeft = 'auto';
+                successMsg.appendChild(link);
+                alertBox.innerHTML = '';
+                alertBox.appendChild(successMsg);
             } else {
-                alertBox.innerHTML =
-                    `<div class="alert alert-error">⚠️ ${data.message || 'Failed to add to cart'}</div>`;
+                const errorMsg = document.createElement('div');
+                errorMsg.className = 'alert alert-error';
+                errorMsg.textContent = '⚠️ ' + (data.message || 'Failed to add to cart');
+                alertBox.innerHTML = '';
+                alertBox.appendChild(errorMsg);
             }
             setTimeout(() => alertBox.innerHTML = '', 4000);
         })

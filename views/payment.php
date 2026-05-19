@@ -13,52 +13,59 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $user    = currentUser();
 $user_id = $user['id_user'];
 
-// Get & sanitize form data
-$name          = sanitize($_POST['name']          ?? '');
-$city          = sanitize($_POST['city']          ?? '');
-$phone         = sanitize($_POST['phone']         ?? '');
-$type          = sanitize($_POST['type']          ?? '');
-$rental_months = isset($_POST['rental_months']) ? (int)$_POST['rental_months'] : 1;
-$book_ids      = $_POST['book_ids'] ?? [];
-
 $errors = [];
 
-// Basic validation
-if (empty($name) || empty($city) || empty($phone) || empty($book_ids)) {
-    $errors[] = "All fields are required.";
+// Verify CSRF token
+if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
+    $errors[] = "Invalid security token. Please try again.";
 }
 
-if ($type === 'rental' && $rental_months < 1) {
-    $errors[] = "Please enter a valid number of rental months.";
-}
-
-// Loop through each book and create order
 if (empty($errors)) {
-    foreach ($book_ids as $book_id) {
-        $book_id = sanitize($book_id);
+    // Get & sanitize form data
+    $name          = sanitize($_POST['name']          ?? '');
+    $city          = sanitize($_POST['city']          ?? '');
+    $phone         = sanitize($_POST['phone']         ?? '');
+    $type          = sanitize($_POST['type']          ?? '');
+    $rental_months = isset($_POST['rental_months']) ? (int)$_POST['rental_months'] : 1;
+    $book_ids      = $_POST['book_ids'] ?? [];
 
-        if ($type === 'buy') {
-            $result = createBuyOrder($user_id, $book_id, $name, $city, $phone, 1, 50.00);
-        } else {
-            $start_date = date('Y-m-d');
-            $end_date   = date('Y-m-d', strtotime("+{$rental_months} months"));
-            $result     = createRentalOrder(
-                $user_id, $book_id, $name, $city, $phone,
-                $rental_months, 10.00 * $rental_months,
-                $start_date, $end_date
-            );
-        }
+    // Basic validation
+    if (empty($name) || empty($city) || empty($phone) || empty($book_ids)) {
+        $errors[] = "All fields are required.";
+    }
 
-        if (!$result) {
-            $errors[] = "Error processing book: " . htmlspecialchars($book_id, ENT_QUOTES, 'UTF-8');
+    if ($type === 'rental' && $rental_months < 1) {
+        $errors[] = "Please enter a valid number of rental months.";
+    }
+
+    // Loop through each book and create order
+    if (empty($errors)) {
+        foreach ($book_ids as $book_id) {
+            $book_id = sanitize($book_id);
+
+            if ($type === 'buy') {
+                $result = createBuyOrder($user_id, $book_id, $name, $city, $phone, 1, 50.00);
+            } else {
+                $start_date = date('Y-m-d');
+                $end_date   = date('Y-m-d', strtotime("+{$rental_months} months"));
+                $result     = createRentalOrder(
+                    $user_id, $book_id, $name, $city, $phone,
+                    $rental_months, 10.00 * $rental_months,
+                    $start_date, $end_date
+                );
+            }
+
+            if (!$result) {
+                $errors[] = "Error processing book: " . htmlspecialchars($book_id, ENT_QUOTES, 'UTF-8');
+            }
         }
     }
-}
 
-// If no errors, clear cart and redirect
-if (empty($errors)) {
-    clearCart($user_id);
-    redirect('order_confirmation.php');
+    // If no errors, clear cart and redirect
+    if (empty($errors)) {
+        clearCart($user_id);
+        redirect('order_confirmation.php');
+    }
 }
 ?>
 <!DOCTYPE html>

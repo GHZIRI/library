@@ -11,35 +11,40 @@ $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
-    $name     = sanitize($_POST['username'] ?? '');
-    $email    = sanitize($_POST['email']    ?? '');
-    $password = $_POST['password'] ?? '';
-
-    if (strlen($password) < 6) {
-        $error = "Password must be at least 6 characters.";
+    // Verify CSRF token
+    if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
+        $error = "Invalid security token. Please try again.";
     } else {
-        // Check if email already exists
-        $stmt = $pdo->prepare("SELECT id_user FROM users WHERE email = ?");
-        $stmt->execute([$email]);
+        $name     = sanitize($_POST['username'] ?? '');
+        $email    = sanitize($_POST['email']    ?? '');
+        $password = $_POST['password'] ?? '';
 
-        if ($stmt->fetch()) {
-            $error = "This email is already registered.";
+        if (strlen($password) < 6) {
+            $error = "Password must be at least 6 characters.";
         } else {
-            $hashed = password_hash($password, PASSWORD_DEFAULT);
+            // Check if email already exists
+            $stmt = $pdo->prepare("SELECT id_user FROM users WHERE email = ?");
+            $stmt->execute([$email]);
 
-            $stmt = $pdo->prepare(
-                "INSERT INTO users (name_user, email, password) VALUES (?, ?, ?)"
-            );
-
-            if ($stmt->execute([$name, $email, $hashed])) {
-                // Auto login after register
-                $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
-                $stmt->execute([$email]);
-                $_SESSION['user'] = $stmt->fetch();
-
-                redirect('catalogue.php');
+            if ($stmt->fetch()) {
+                $error = "This email is already registered.";
             } else {
-                $error = "Something went wrong. Please try again.";
+                $hashed = password_hash($password, PASSWORD_DEFAULT);
+
+                $stmt = $pdo->prepare(
+                    "INSERT INTO users (name_user, email, password) VALUES (?, ?, ?)"
+                );
+
+                if ($stmt->execute([$name, $email, $hashed])) {
+                    // Auto login after register
+                    $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
+                    $stmt->execute([$email]);
+                    $_SESSION['user'] = $stmt->fetch();
+
+                    redirect('catalogue.php');
+                } else {
+                    $error = "Something went wrong. Please try again.";
+                }
             }
         }
     }
@@ -65,6 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <form action="" method="POST">
+            <input type="hidden" name="csrf_token" value="<?= getCSRFToken() ?>">
             <div class="form-group">
                 <label for="username">Full Name</label>
                 <input type="text" id="username" name="username"

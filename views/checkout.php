@@ -43,6 +43,7 @@ if (empty($cartItems)) {
 </div>
 
 <form action="payment.php" method="POST" onsubmit="return validateCheckoutForm()">
+    <input type="hidden" name="csrf_token" value="<?= getCSRFToken() ?>">
     <div class="checkout-layout">
 
         <!-- Left: Personal info + order type -->

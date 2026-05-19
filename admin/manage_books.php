@@ -61,7 +61,9 @@ if (!isAdmin()) {
             container.innerHTML = "";
 
             if (!books) {
-                container.innerHTML = "<p>No books found.</p>";
+                const msg = document.createElement('p');
+                msg.textContent = 'No books found.';
+                container.appendChild(msg);
                 return;
             }
 
@@ -72,15 +74,37 @@ if (!isAdmin()) {
                 const cover   = info.imageLinks ? info.imageLinks.thumbnail : "";
                 const id      = element.id;
 
-                container.innerHTML += `
-                    <div>
-                        <img src="${cover}" alt="${title}">
-                        <h3>${title}</h3>
-                        <p>${author}</p>
-                        <p><b>Book ID:</b> ${id}</p>
-                        <a href="../views/book_detail.php?id=${id}" target="_blank">View Detail</a>
-                    </div>
-                `;
+                const bookDiv = document.createElement('div');
+                
+                if (cover) {
+                    const img = document.createElement('img');
+                    img.src = cover;
+                    img.alt = title;
+                    bookDiv.appendChild(img);
+                }
+                
+                const titleEl = document.createElement('h3');
+                titleEl.textContent = title;
+                bookDiv.appendChild(titleEl);
+                
+                const authorEl = document.createElement('p');
+                authorEl.textContent = author;
+                bookDiv.appendChild(authorEl);
+                
+                const idEl = document.createElement('p');
+                idEl.innerHTML = '<b>Book ID:</b> ';
+                const idSpan = document.createElement('span');
+                idSpan.textContent = id;
+                idEl.appendChild(idSpan);
+                bookDiv.appendChild(idEl);
+                
+                const link = document.createElement('a');
+                link.href = '../views/book_detail.php?id=' + encodeURIComponent(id);
+                link.target = '_blank';
+                link.textContent = 'View Detail';
+                bookDiv.appendChild(link);
+                
+                container.appendChild(bookDiv);
             });
         }
     </script>
