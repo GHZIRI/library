@@ -1,9 +1,7 @@
 <?php
 require_once '../core/functions.php';
 
-if (!isLoggedIn()) {
-    redirect('login.php');
-}
+requireLogin();
 
 // Validate request method
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

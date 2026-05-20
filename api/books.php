@@ -1,50 +1,76 @@
 <?php
 /**
  * ════════════════════════════════════════════════════════════════════════════
- * API: Fetch Books from Database ✅ FIXED - NO LOGIN REQUIRED
+ * API: Fetch Books from Database ✅ NO LOGIN REQUIRED
  * ════════════════════════════════════════════════════════════════════════════
  * 
- * Purpose: جلب قائمة الكتب من قاعدة البيانات المحلية
+ * @description Public API endpoint for fetching books from the database
+ * Provides book search, category listing, and individual book retrieval
+ * No authentication required - allows public browsing
  * 
- * Usage:
- *   GET /api/books.php?action=search&q=search_query&limit=20
- *   GET /api/books.php?action=categories
+ * @usage GET /api/books.php?action=search&q=search_query&limit=20
+ *        GET /api/books.php?action=categories
+ *        GET /api/books.php?action=get&id=book_id
  */
 
-// ════════════════════════════════════════════════════════════════════════════
-// Include Dependencies
-// ════════════════════════════════════════════════════════════════════════════
+/**
+ * Include database connection and helper functions
+ * Establishes PDO connection stored in $pdo global variable
+ */
 require_once dirname(__FILE__) . '/../core/db.php';
 
-// ════════════════════════════════════════════════════════════════════════════
-// Response Headers
-// ════════════════════════════════════════════════════════════════════════════
+/**
+ * Configure HTTP response headers for API communication
+ * Sets JSON content type and enables CORS for cross-origin requests
+ */
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, OPTIONS');
 
-// Handle preflight requests
+/**
+ * Handle CORS preflight requests
+ * Required for browser-based CORS requests from frontend JavaScript
+ */
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit();
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// Get Parameters
-// ════════════════════════════════════════════════════════════════════════════
+/**
+ * Extract and validate query parameters from GET request
+ * @param string $action - Operation type: 'search', 'categories', or 'get'
+ * @param string $query - Search term for title/author filtering
+ * @param int $limit - Maximum number of results (capped at 100)
+ * @param int $offset - Pagination offset for results
+ */
 $action   = $_GET['action']   ?? 'search';
 $query    = isset($_GET['q']) ? trim($_GET['q']) : '';
 $limit    = isset($_GET['limit']) ? (int)$_GET['limit'] : 20;
 $offset   = isset($_GET['offset']) ? (int)$_GET['offset'] : 0;
 
-// Validate limits
-if ($limit > 100) $limit = 100;
-if ($limit < 1) $limit = 20;
-if ($offset < 0) $offset = 0;
+/**
+ * Validate and sanitize limit/offset values
+ * Prevents extremely large queries and SQL injection attempts
+ * Ensures reasonable pagination constraints
+ */
+if ($limit > 100) $limit = 100;  // Cap maximum results at 100
+if ($limit < 1) $limit = 20;     // Use default if invalid
+if ($offset < 0) $offset = 0;    // Prevent negative offsets
 
 // ════════════════════════════════════════════════════════════════════════════
-// 1️⃣ SEARCH BOOKS (DEFAULT ACTION)
+// ACTION 1: Get Single Book by ID
 // ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Retrieves a single book record by its unique book_id
+ * Returns 404 if book not found, 200 on success
+ * 
+ * Query Parameters:
+ *   @param string $id - Unique book identifier
+ * 
+ * Response:
+ *   @returns {object} JSON with 'success' boolean and 'book' object
+ */
 if ($action === 'search') {
     try {
         // Verify database connection
@@ -52,11 +78,11 @@ if ($action === 'search') {
             throw new Exception('Database not connected');
         }
 
-        // Build SQL query
+        // Build base SQL query
         $sql = "SELECT * FROM books WHERE 1=1";
         $params = [];
 
-        // Search by title or author
+        // Add search filter for title or author matching
         if (!empty($query)) {
             $sql .= " AND (title LIKE ? OR author LIKE ?)";
             $searchTerm = "%{$query}%";
@@ -64,12 +90,12 @@ if ($action === 'search') {
             $params[] = $searchTerm;
         }
 
-        // Add pagination
+        // Add pagination - order by newest first
         $sql .= " ORDER BY created_at DESC LIMIT ? OFFSET ?";
         $params[] = $limit;
         $params[] = $offset;
 
-        // Get total count (for pagination)
+        // Get total count of matching books for pagination metadata
         $countSql = "SELECT COUNT(*) as total FROM books WHERE 1=1";
         if (!empty($query)) {
             $countSql .= " AND (title LIKE ? OR author LIKE ?)";
@@ -81,11 +107,12 @@ if ($action === 'search') {
         }
         $totalCount = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
 
-        // Execute query
+        // Execute search query
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         $books = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        // Return successful response with books and pagination info
         http_response_code(200);
         echo json_encode([
             'success' => true,
@@ -96,6 +123,7 @@ if ($action === 'search') {
         ]);
 
     } catch (PDOException $e) {
+        // Handle database errors
         http_response_code(500);
         echo json_encode([
             'success' => false,
@@ -103,6 +131,7 @@ if ($action === 'search') {
             'debug' => $e->getMessage()
         ]);
     } catch (Exception $e) {
+        // Handle general errors
         http_response_code(500);
         echo json_encode([
             'success' => false,
@@ -113,19 +142,30 @@ if ($action === 'search') {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// 2️⃣ GET CATEGORIES
+// ACTION 2: Get Distinct Categories
 // ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Retrieves all unique book categories from the database
+ * Useful for category filters and navigation menus
+ * 
+ * Response:
+ *   @returns {object} JSON with 'success' boolean and 'categories' array
+ */
 if ($action === 'categories') {
     try {
+        // Query all distinct categories, sorted alphabetically
         $stmt = $pdo->query("SELECT DISTINCT category FROM books WHERE category IS NOT NULL ORDER BY category");
         $categories = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
+        // Return successful response with category list
         http_response_code(200);
         echo json_encode([
             'success' => true,
             'categories' => $categories
         ]);
     } catch (Exception $e) {
+        // Handle query errors
         http_response_code(500);
         echo json_encode([
             'success' => false,
@@ -136,23 +176,38 @@ if ($action === 'categories') {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// 3️⃣ GET SINGLE BOOK BY ID
+// ACTION 3: Get Single Book by ID
 // ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Retrieves a single book record by its unique book_id
+ * Returns 404 if book not found
+ * 
+ * Query Parameters:
+ *   @param string $id - Unique book identifier
+ * 
+ * Response:
+ *   @returns {object} JSON with 'success' boolean and 'book' object or error
+ */
 if ($action === 'get' && isset($_GET['id'])) {
     try {
+        // Sanitize book ID to prevent SQL injection
         $id = trim($_GET['id']);
         
+        // Query single book by ID
         $stmt = $pdo->prepare("SELECT * FROM books WHERE book_id = ?");
         $stmt->execute([$id]);
         $book = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($book) {
+            // Book found - return success response
             http_response_code(200);
             echo json_encode([
                 'success' => true,
                 'book' => $book
             ]);
         } else {
+            // Book not found - return 404
             http_response_code(404);
             echo json_encode([
                 'success' => false,
@@ -160,6 +215,7 @@ if ($action === 'get' && isset($_GET['id'])) {
             ]);
         }
     } catch (Exception $e) {
+        // Handle database errors
         http_response_code(500);
         echo json_encode([
             'success' => false,
@@ -170,8 +226,13 @@ if ($action === 'get' && isset($_GET['id'])) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// Invalid action
+// Invalid or Missing Action - Default Error Response
 // ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Default response for unrecognized or missing actions
+ * Returns 400 Bad Request with list of valid actions
+ */
 http_response_code(400);
 echo json_encode([
     'success' => false,
@@ -179,15 +240,29 @@ echo json_encode([
 ]);
 
 // ════════════════════════════════════════════════════════════════════════════
-// Response Headers
+// Additional Response Headers (For Compatibility)
 // ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Duplicate header configuration - kept for backward compatibility
+ * Sets JSON response type and CORS headers
+ */
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET');
 
 // ════════════════════════════════════════════════════════════════════════════
-// Get Parameters
+// Additional Parameter Extraction (For Compatibility)
 // ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Re-extract query parameters in case alternative code paths need them
+ * Note: These may be redundant depending on executed action
+ * 
+ * Parameters:
+ *   @param string $category - Optional category filter for searches
+ *   @param string $id - Book identifier for get action
+ */
 $action   = $_GET['action']   ?? 'search';
 $query    = isset($_GET['q']) ? trim($_GET['q']) : '';
 $category = isset($_GET['category']) ? trim($_GET['category']) : '';
@@ -195,27 +270,39 @@ $id       = isset($_GET['id']) ? trim($_GET['id']) : '';
 $limit    = isset($_GET['limit']) ? (int)$_GET['limit'] : 20;
 $offset   = isset($_GET['offset']) ? (int)$_GET['offset'] : 0;
 
-// Validate limits
-if ($limit > 100) $limit = 100;
-if ($limit < 1) $limit = 20;
-if ($offset < 0) $offset = 0;
+// Re-validate limit and offset values for safety
+if ($limit > 100) $limit = 100;  // Cap maximum results
+if ($limit < 1) $limit = 20;     // Use default if invalid
+if ($offset < 0) $offset = 0;    // Prevent negative offsets
 
 // ════════════════════════════════════════════════════════════════════════════
-// 1️⃣ GET SINGLE BOOK BY ID
+// LEGACY ACTION HANDLERS (Duplicate - Kept for backward compatibility)
 // ════════════════════════════════════════════════════════════════════════════
+
+/**
+ * DUPLICATE ACTION 1: Get Single Book by ID (Legacy Path)
+ * This is a duplicate of the action handlers above
+ * Kept for backward compatibility with legacy code paths
+ * 
+ * Retrieves a single book record by its unique book_id
+ * Returns 404 if not found, 200 on success
+ */
 if ($action === 'get' && $id) {
     try {
+        // Query single book by ID
         $stmt = $pdo->prepare("SELECT * FROM books WHERE book_id = ?");
         $stmt->execute([$id]);
         $book = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($book) {
+            // Book found - return success response
             http_response_code(200);
             echo json_encode([
                 'success' => true,
                 'book' => $book
             ]);
         } else {
+            // Book not found - return 404
             http_response_code(404);
             echo json_encode([
                 'success' => false,
@@ -223,6 +310,7 @@ if ($action === 'get' && $id) {
             ]);
         }
     } catch (Exception $e) {
+        // Handle database errors
         http_response_code(500);
         echo json_encode([
             'success' => false,
@@ -232,16 +320,22 @@ if ($action === 'get' && $id) {
     exit();
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// 2️⃣ SEARCH BOOKS
-// ════════════════════════════════════════════════════════════════════════════
+/**
+ * DUPLICATE ACTION 2: Search Books (Legacy Path)
+ * This is a duplicate of the action handlers above with additional category filtering
+ * Kept for backward compatibility
+ * 
+ * Searches for books by title or author, with optional category filter
+ * Supports pagination with limit and offset parameters
+ * Includes total count for pagination metadata
+ */
 if ($action === 'search') {
     try {
-        // Build query
+        // Build query with conditional filters
         $sql = "SELECT * FROM books WHERE 1=1";
         $params = [];
 
-        // Search by title or author
+        // Add search filter for title or author matching
         if (!empty($query)) {
             $sql .= " AND (title LIKE ? OR author LIKE ?)";
             $searchTerm = "%{$query}%";
@@ -249,29 +343,31 @@ if ($action === 'search') {
             $params[] = $searchTerm;
         }
 
-        // Filter by category
+        // Add optional category filter
         if (!empty($category)) {
             $sql .= " AND category = ?";
             $params[] = $category;
         }
 
-        // Get total count
-        $countStmt = $pdo->prepare("SELECT COUNT(*) as total FROM books WHERE 1=1" . 
+        // Build count query with same filters for pagination info
+        $countSql = "SELECT COUNT(*) as total FROM books WHERE 1=1" . 
             (!empty($query) ? " AND (title LIKE ? OR author LIKE ?)" : "") .
-            (!empty($category) ? " AND category = ?" : ""));
+            (!empty($category) ? " AND category = ?" : "");
+        $countStmt = $pdo->prepare($countSql);
         $countStmt->execute($params);
         $totalCount = $countStmt->fetch(PDO::FETCH_ASSOC)['total'];
 
-        // Add pagination
+        // Add pagination - order by newest first
         $sql .= " ORDER BY created_at DESC LIMIT ? OFFSET ?";
         $params[] = $limit;
         $params[] = $offset;
 
-        // Execute query
+        // Execute search query
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         $books = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+        // Return successful response with pagination info
         http_response_code(200);
         echo json_encode([
             'success' => true,
@@ -282,6 +378,7 @@ if ($action === 'search') {
             'offset' => $offset
         ]);
     } catch (Exception $e) {
+        // Handle database errors
         http_response_code(500);
         echo json_encode([
             'success' => false,
@@ -292,20 +389,28 @@ if ($action === 'search') {
     exit();
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// 3️⃣ GET CATEGORIES
-// ════════════════════════════════════════════════════════════════════════════
+/**
+ * DUPLICATE ACTION 3: Get Categories (Legacy Path)
+ * This is a duplicate of the action handler above
+ * Kept for backward compatibility
+ * 
+ * Retrieves all unique book categories
+ * Used for category filtering and navigation menus
+ */
 if ($action === 'categories') {
     try {
+        // Query all distinct categories, sorted alphabetically
         $stmt = $pdo->query("SELECT DISTINCT category FROM books WHERE category IS NOT NULL ORDER BY category");
         $categories = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
+        // Return successful response with category list
         http_response_code(200);
         echo json_encode([
             'success' => true,
             'categories' => $categories
         ]);
     } catch (Exception $e) {
+        // Handle query errors
         http_response_code(500);
         echo json_encode([
             'success' => false,
@@ -315,12 +420,39 @@ if ($action === 'categories') {
     exit();
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// Invalid action
-// ════════════════════════════════════════════════════════════════════════════
+/**
+ * DUPLICATE: Final Invalid Action Response
+ * Fallback error response if no action matched
+ * Returns 400 Bad Request status code
+ */
 http_response_code(400);
 echo json_encode([
     'success' => false,
     'message' => 'Invalid action'
 ]);
+
+/**
+ * ════════════════════════════════════════════════════════════════════════════
+ * END OF API ENDPOINT
+ * ════════════════════════════════════════════════════════════════════════════
+ * 
+ * Summary of Public API Endpoints:
+ *   1. GET /api/books.php?action=search&q=query&limit=20&offset=0
+ *      - Search books by title/author with pagination
+ *      - Parameters: q (search query), limit (max results), offset (pagination)
+ *      - Returns: Array of matching books with total count
+ *
+ *   2. GET /api/books.php?action=categories
+ *      - Get all available book categories
+ *      - No parameters required
+ *      - Returns: Array of category names
+ *
+ *   3. GET /api/books.php?action=get&id=book_id
+ *      - Retrieve single book by ID
+ *      - Parameters: id (unique book identifier)
+ *      - Returns: Single book object or 404 error
+ *
+ * No authentication required for any endpoint - public API for browsing
+ * ════════════════════════════════════════════════════════════════════════════
+ */
 ?>

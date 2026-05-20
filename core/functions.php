@@ -31,6 +31,13 @@ function redirect(string $url): never {
     exit();
 }
 
+// Require login — redirect to login page if not logged in
+function requireLogin(): void {
+    if (!isLoggedIn()) {
+        redirect('../views/login.php');
+    }
+}
+
 
 // ── Input helpers ─────────────────────────────────────────────────────────────
 

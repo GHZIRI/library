@@ -1,10 +1,7 @@
 <?php
 require_once '../core/functions.php';
 
-if (!isLoggedIn()) {
-    redirect('login.php');
-}
-
+// No login required — allow free browsing
 // Get & validate book id from URL
 $book_id = sanitize($_GET['id'] ?? '');
 
@@ -12,7 +9,7 @@ if (empty($book_id)) {
     redirect('catalogue.php');
 }
 
-$user = currentUser();
+$user = currentUser(); // May be null if not logged in
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -29,10 +26,15 @@ $user = currentUser();
     <div class="navbar__inner">
         <a href="catalogue.php" class="navbar__brand">📚 <span>Library</span></a>
         <div class="navbar__links">
-            <a href="cart.php">🛒 Cart</a>
-            <a href="orders_history.php">📋 My Orders</a>
-            <a href="user_dashboard.php">👤 <?= sanitize($user['name_user']) ?></a>
-            <a href="../core/logout.php" class="btn-nav-logout">🚪 Logout</a>
+            <?php if (isLoggedIn()): ?>
+                <a href="cart.php">🛒 Cart</a>
+                <a href="orders_history.php">📋 My Orders</a>
+                <a href="user_dashboard.php">👤 <?= sanitize($user['name_user']) ?></a>
+                <a href="../core/logout.php" class="btn-nav-logout">🚪 Logout</a>
+            <?php else: ?>
+                <a href="login.php" class="btn btn-primary">🔑 Sign In</a>
+                <a href="register.php">📝 Register</a>
+            <?php endif; ?>
         </div>
     </div>
 </nav>
@@ -163,8 +165,18 @@ $user = currentUser();
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ book_id, type })
         })
-        .then(res => res.json())
+        .then(res => {
+            if (res.status === 401) {
+                // User not logged in
+                alert('⚠️ Please sign in to add books to your cart');
+                window.location.href = 'login.php';
+                return null;
+            }
+            return res.json();
+        })
         .then(data => {
+            if (!data) return;
+            
             const alertBox = document.getElementById('alertBox');
             if (data.success) {
                 const successMsg = document.createElement('div');

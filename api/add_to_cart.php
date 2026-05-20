@@ -1,9 +1,12 @@
 <?php
 require_once '../core/functions.php';
 
+header('Content-Type: application/json; charset=utf-8');
+
 // Only logged in users can add to cart
 if (!isLoggedIn()) {
-    echo json_encode(['success' => false, 'message' => 'Not logged in']);
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => 'Login required', 'loginRequired' => true]);
     exit();
 }
 

@@ -65,7 +65,7 @@ CREATE TABLE cart (
 );
 
 -- ==================
--- BOOKS  ← هذا الجدول كان مفقوداً وهو سبب المشكلة!
+-- BOOKS ← This table was missing and that's the cause of the problem!
 -- ==================
 CREATE TABLE books (
     book_id     INT            AUTO_INCREMENT PRIMARY KEY,
@@ -81,11 +81,13 @@ CREATE TABLE books (
 
 -- ==================
 -- ADMIN DEFAULT
--- الباسورد: admin123
--- مشفّر بـ password_hash() لأن PHP تستخدم password_verify()
--- لا يمكن وضع النص العادي هنا — يجب أن يكون hash
+-- Password: admin123
+-- Encrypted with password_hash() because PHP uses password_verify()
+-- Plain text cannot be placed here — it must be a hash
 -- ==================
 INSERT INTO users (name_user, email, password, role) VALUES
 ('Admin', 'admin@library.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin');
 
 
+-- email admin@library.com
+-- password admin123

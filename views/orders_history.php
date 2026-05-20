@@ -1,9 +1,7 @@
 <?php
 require_once '../core/functions.php';
 
-if (!isLoggedIn()) {
-    redirect('login.php');
-}
+requireLogin();
 
 $user    = currentUser();
 $user_id = $user['id_user'];   // ← FIX: was wrongly set to currentUser()['login.php']

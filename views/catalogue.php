@@ -1,11 +1,8 @@
 <?php
 require_once '../core/functions.php';
 
-if (!isLoggedIn()) {
-    redirect('login.php');
-}
-
-$user = currentUser();
+// No login required — allow free browsing
+$user = currentUser(); // May be null if not logged in
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -22,10 +19,15 @@ $user = currentUser();
     <div class="navbar__inner">
         <a href="catalogue.php" class="navbar__brand">📚 <span>Library</span></a>
         <div class="navbar__links">
-            <a href="cart.php">🛒 Cart</a>
-            <a href="orders_history.php">📋 My Orders</a>
-            <a href="user_dashboard.php">👤 <?= sanitize($user['name_user']) ?></a>
-            <a href="../core/logout.php" class="btn-nav-logout">🚪 Logout</a>
+            <?php if (isLoggedIn()): ?>
+                <a href="cart.php">🛒 Cart</a>
+                <a href="orders_history.php">📋 My Orders</a>
+                <a href="user_dashboard.php">👤 <?= sanitize($user['name_user']) ?></a>
+                <a href="../core/logout.php" class="btn-nav-logout">🚪 Logout</a>
+            <?php else: ?>
+                <a href="login.php" class="btn btn-primary">🔑 Sign In</a>
+                <a href="register.php">📝 Register</a>
+            <?php endif; ?>
         </div>
     </div>
 </nav>
