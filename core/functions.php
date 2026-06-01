@@ -1,77 +1,141 @@
 <?php
+/**
+ * ملف الدوال المشتركة
+ * 
+ * يحتوي على دوال مساعدة تُستخدم في جميع أنحاء الموقع
+ */
 
-// ── Bootstrap ────────────────────────────────────────────────────────────────
+// تشغيل الجلسة
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// استيراد ملف الاتصال
 require_once __DIR__ . '/db.php';
 
+// =====================================================
+// دوال التحقق من الدخول (Authentication)
+// =====================================================
 
-// ── Auth helpers ─────────────────────────────────────────────────────────────
-
-// Check if user is logged in
-function isLoggedIn(): bool {
-    return isset($_SESSION['user']);
+/**
+ * التحقق من هل المستخدم مسجل دخول
+ */
+function isLoggedIn() {
+    return isset($_SESSION['user_id']);
 }
 
-// Check if logged-in user is admin
-function isAdmin(): bool {
-    return isLoggedIn() && ($_SESSION['user']['role'] ?? '') === 'admin';
+/**
+ * التحقق من هل المستخدم أدمين
+ */
+function isAdmin() {
+    return isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
 }
 
-// Get current logged-in user array
-function currentUser(): ?array {
-    return $_SESSION['user'] ?? null;
+/**
+ * الحصول على معرف المستخدم الحالي
+ */
+function getCurrentUserId() {
+    return $_SESSION['user_id'] ?? null;
 }
 
-// Redirect helper
-function redirect(string $url): never {
+/**
+ * إعادة التوجيه (Redirect)
+ */
+function redirect($url) {
     header("Location: {$url}");
-    exit();
+    exit;
 }
 
-// Require login — redirect to login page if not logged in
-function requireLogin(): void {
+/**
+ * فرض تسجيل الدخول
+ */
+function requireLogin() {
     if (!isLoggedIn()) {
-        redirect('../views/login.php');
+        redirect('login.php');
     }
 }
 
+/**
+ * فرض حساب أدمين
+ */
+function requireAdmin() {
+    if (!isAdmin()) {
+        redirect('../');
+    }
+}
 
-// ── Input helpers ─────────────────────────────────────────────────────────────
+// =====================================================
+// دوال التنظيف والحماية (Security)
+// =====================================================
 
-// Sanitize input (XSS protection)
-function sanitize(mixed $data): mixed {
+/**
+ * تنظيف المدخلات (XSS Protection)
+ */
+function sanitize($data) {
     if (is_array($data)) {
         return array_map('sanitize', $data);
     }
-    return htmlspecialchars(trim((string) $data), ENT_QUOTES, 'UTF-8');
+    return htmlspecialchars(trim((string)$data), ENT_QUOTES, 'UTF-8');
 }
 
-// Format price
-function formatPrice(float $price): string {
+/**
+ * توليد رمز CSRF للحماية من الهجمات
+ */
+function generateCsrfToken() {
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+/**
+ * التحقق من صحة رمز CSRF
+ */
+function verifyCsrfToken($token) {
+    return isset($_SESSION['csrf_token']) && 
+           hash_equals($_SESSION['csrf_token'], $token);
+}
+
+// =====================================================
+// دوال المساعدة
+// =====================================================
+
+/**
+ * تنسيق السعر بـ MAD
+ */
+function formatPrice($price) {
     return number_format($price, 2, '.', '') . ' MAD';
 }
 
-// Format date
-function formatDate(string $date, string $format = 'Y-m-d H:i'): string {
-    return date($format, strtotime($date));
+/**
+ * تنسيق التاريخ
+ */
+function formatDate($date) {
+    return date('d/m/Y H:i', strtotime($date));
 }
 
-// Generate unique order number
-function generateOrderNumber(): string {
-    return 'ORD-' . date('YmdHis') . '-' . rand(1000, 9999);
+/**
+ * حساب تاريخ الانتهاء من الكراء
+ */
+function calculateEndDate($days) {
+    return date('Y-m-d', strtotime("+{$days} days"));
 }
 
+// =====================================================
+// دوال الرسائل (Flash Messages)
+// =====================================================
 
-// ── Flash messages ────────────────────────────────────────────────────────────
-
-function setFlash(string $key, string $message): void {
+/**
+ * حفظ رسالة مؤقتة
+ */
+function setFlash($key, $message) {
     $_SESSION['flash'][$key] = $message;
 }
 
-function getFlash(string $key): ?string {
+/**
+ * الحصول على رسالة مؤقتة وحذفها
+ */
+function getFlash($key) {
     if (isset($_SESSION['flash'][$key])) {
         $message = $_SESSION['flash'][$key];
         unset($_SESSION['flash'][$key]);
@@ -80,170 +144,184 @@ function getFlash(string $key): ?string {
     return null;
 }
 
-// ── CSRF Protection ───────────────────────────────────────────────────────────
+// =====================================================
+// دوال قاعدة البيانات
+// =====================================================
 
 /**
- * Generate a CSRF token for form security
+ * الحصول على جميع الأنواع
  */
-function generateCSRFToken(): string {
-    if (empty($_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-    }
-    return $_SESSION['csrf_token'];
-}
-
-/**
- * Verify CSRF token from form submission
- */
-function verifyCSRFToken(string $token): bool {
-    return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
-}
-
-/**
- * Get CSRF token for forms
- */
-function getCSRFToken(): string {
-    return generateCSRFToken();
-}
-
-
-// ── Password helpers ──────────────────────────────────────────────────────────
-
-function hashPassword(string $password): string {
-    return password_hash($password, PASSWORD_DEFAULT);
-}
-
-function verifyPassword(string $password, string $hash): bool {
-    return password_verify($password, $hash);
-}
-
-
-// ── Cart functions ────────────────────────────────────────────────────────────
-
-// Add a book to cart (prevent duplicates per user+book+type)
-function addToCart(int $user_id, string $book_id, string $type, int $rental_months = 1): bool {
+function getAllTypes() {
     global $pdo;
-
-    // Check if already in cart
-    $stmt = $pdo->prepare(
-        "SELECT id_cart FROM cart WHERE id_user = ? AND book_id = ? AND type = ?"
-    );
-    $stmt->execute([$user_id, $book_id, $type]);
-
-    if ($stmt->fetch()) {
-        return false; // Already in cart
-    }
-
-    $stmt = $pdo->prepare(
-        "INSERT INTO cart (id_user, book_id, type, rental_months) VALUES (?, ?, ?, ?)"
-    );
-    return $stmt->execute([
-        $user_id,
-        $book_id,
-        $type,
-        $type === 'rental' ? $rental_months : null,
-    ]);
-}
-
-// Get all cart items for a user
-function getCart(int $user_id): array {
-    global $pdo;
-
-    $stmt = $pdo->prepare("SELECT * FROM cart WHERE id_user = ? ORDER BY created_at DESC");
-    $stmt->execute([$user_id]);
+    $stmt = $pdo->query("SELECT * FROM book_types ORDER BY type_name ASC");
     return $stmt->fetchAll();
 }
 
-// Remove a single item from cart (only if it belongs to the user)
-function removeFromCart(int $id_cart, int $user_id): bool {
+/**
+ * الحصول على جميع الكتب (مع البحث والفلتر)
+ */
+function getAllBooks($search = '', $type_id = '') {
     global $pdo;
-
-    $stmt = $pdo->prepare("DELETE FROM cart WHERE id_cart = ? AND id_user = ?");
-    return $stmt->execute([$id_cart, $user_id]);
-}
-
-// Clear all cart items for a user
-function clearCart(int $user_id): bool {
-    global $pdo;
-
-    $stmt = $pdo->prepare("DELETE FROM cart WHERE id_user = ?");
-    return $stmt->execute([$user_id]);
-}
-
-// Get cart item count for the logged-in user
-function getCartCount(): int {
-    if (!isLoggedIn()) {
-        return 0;
+    
+    $query = "SELECT b.*, bt.type_name 
+              FROM books b 
+              JOIN book_types bt ON b.type_id = bt.type_id 
+              WHERE b.available_buy = TRUE";
+    
+    $params = [];
+    
+    if (!empty($search)) {
+        $query .= " AND (b.title LIKE ? OR b.author LIKE ?)";
+        $search_param = "%{$search}%";
+        $params[] = $search_param;
+        $params[] = $search_param;
     }
-    global $pdo;
-
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM cart WHERE id_user = ?");
-    $stmt->execute([currentUser()['id_user']]);
-    return (int) $stmt->fetchColumn();
+    
+    if (!empty($type_id)) {
+        $query .= " AND b.type_id = ?";
+        $params[] = $type_id;
+    }
+    
+    $query .= " ORDER BY b.created_at DESC";
+    
+    $stmt = $pdo->prepare($query);
+    $stmt->execute($params);
+    return $stmt->fetchAll();
 }
 
-
-// ── Order functions ───────────────────────────────────────────────────────────
-
-// Create a buy order
-function createBuyOrder(
-    int    $user_id,
-    string $book_id,
-    string $name,
-    string $city,
-    string $phone,
-    int    $quantity,
-    float  $total_price
-): bool {
+/**
+ * الحصول على كتاب واحد بـ ID
+ */
+function getBookById($book_id) {
     global $pdo;
-
-    $stmt = $pdo->prepare(
-        "INSERT INTO orders_buy (id_user, book_id, name_buy, city, phone_number, quantity, total_price)
-         VALUES (?, ?, ?, ?, ?, ?, ?)"
-    );
-    return $stmt->execute([$user_id, $book_id, $name, $city, $phone, $quantity, $total_price]);
+    $stmt = $pdo->prepare("
+        SELECT b.*, bt.type_name 
+        FROM books b 
+        JOIN book_types bt ON b.type_id = bt.type_id 
+        WHERE b.book_id = ?
+    ");
+    $stmt->execute([$book_id]);
+    return $stmt->fetch();
 }
 
-// Create a rental order
-function createRentalOrder(
-    int    $user_id,
-    string $book_id,
-    string $name,
-    string $city,
-    string $phone,
-    int    $rental_months,
-    float  $total_price,
-    string $start_date,
-    string $end_date
-): bool {
+/**
+ * إضافة كتاب جديد (للأدمين)
+ */
+function addBook($data) {
     global $pdo;
-
-    $stmt = $pdo->prepare(
-        "INSERT INTO orders_rental
-            (id_user, book_id, name_rental, city, phone_number, rental_months, total_price, start_date, end_date)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-    );
+    
+    $stmt = $pdo->prepare("
+        INSERT INTO books (title, author, type_id, cover_image, description, 
+                          price_buy, price_rental, available_buy, available_rental)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ");
+    
     return $stmt->execute([
-        $user_id, $book_id, $name, $city, $phone,
-        $rental_months, $total_price, $start_date, $end_date,
+        $data['title'],
+        $data['author'],
+        $data['type_id'],
+        $data['cover_image'] ?? null,
+        $data['description'] ?? null,
+        $data['price_buy'],
+        $data['price_rental'] ?? null,
+        $data['available_buy'] ?? 1,
+        $data['available_rental'] ?? 0,
     ]);
 }
 
-// Get all orders (buy + rental) for a user
-function getUserOrders(int $user_id): array {
+/**
+ * حذف كتاب (للأدمين)
+ */
+function deleteBook($book_id) {
     global $pdo;
+    $stmt = $pdo->prepare("DELETE FROM books WHERE book_id = ?");
+    return $stmt->execute([$book_id]);
+}
 
-    $stmt = $pdo->prepare(
-        "SELECT * FROM orders_buy WHERE id_user = ? ORDER BY created_at DESC"
-    );
+/**
+ * الحصول على بيانات المستخدم
+ */
+function getUserById($user_id) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE user_id = ?");
     $stmt->execute([$user_id]);
-    $buy = $stmt->fetchAll();
+    return $stmt->fetch();
+}
 
-    $stmt = $pdo->prepare(
-        "SELECT * FROM orders_rental WHERE id_user = ? ORDER BY created_at DESC"
-    );
-    $stmt->execute([$user_id]);
-    $rental = $stmt->fetchAll();
+/**
+ * الحصول على المستخدم برسالة بريده
+ */
+function getUserByEmail($email) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
+    $stmt->execute([$email]);
+    return $stmt->fetch();
+}
 
-    return ['buy' => $buy, 'rental' => $rental];
+/**
+ * إنشاء حساب جديد
+ */
+function createUser($data) {
+    global $pdo;
+    
+    $password_hash = password_hash($data['password'], PASSWORD_DEFAULT);
+    
+    $stmt = $pdo->prepare("
+        INSERT INTO users (name_user, email, password, role)
+        VALUES (?, ?, ?, 'user')
+    ");
+    
+    return $stmt->execute([
+        $data['name'],
+        $data['email'],
+        $password_hash
+    ]);
+}
+
+/**
+ * إنشاء طلب شراء جديد
+ */
+function createBuyOrder($data) {
+    global $pdo;
+    
+    $stmt = $pdo->prepare("
+        INSERT INTO orders_buy (user_id, book_id, name, phone, city, quantity, total_price)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ");
+    
+    return $stmt->execute([
+        $data['user_id'] ?? null,
+        $data['book_id'],
+        $data['name'],
+        $data['phone'],
+        $data['city'],
+        $data['quantity'],
+        $data['total_price']
+    ]);
+}
+
+/**
+ * إنشاء طلب كراء جديد
+ */
+function createRentalOrder($data) {
+    global $pdo;
+    
+    $stmt = $pdo->prepare("
+        INSERT INTO orders_rental 
+        (user_id, book_id, name, phone, city, rental_days, total_price, card_last_four, start_date, end_date)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ");
+    
+    return $stmt->execute([
+        $data['user_id'],
+        $data['book_id'],
+        $data['name'],
+        $data['phone'],
+        $data['city'],
+        $data['rental_days'],
+        $data['total_price'],
+        $data['card_last_four'],
+        date('Y-m-d'),
+        $data['end_date']
+    ]);
 }

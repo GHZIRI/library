@@ -1,6 +1,12 @@
 <?php
+/**
+ * ملف الاتصال بقاعدة البيانات
+ * 
+ * هذا الملف ينشئ اتصال PDO آمن مع MySQL
+ * يُستخدم في جميع ملفات PHP
+ */
 
-$host   = 'localhost';
+$host = 'localhost';
 $dbname = 'library';
 $username = 'root';
 $password = '';
@@ -11,12 +17,12 @@ try {
         $username,
         $password,
         [
-            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES   => false,
+            PDO::ATTR_EMULATE_PREPARES => false,
         ]
     );
 } catch (PDOException $e) {
     http_response_code(500);
-    die(json_encode(['success' => false, 'message' => 'Database connection failed.']));
+    die('خطأ في الاتصال بقاعدة البيانات: ' . htmlspecialchars($e->getMessage()));
 }

@@ -1,6 +1,18 @@
 <?php
-require_once __DIR__ . '/functions.php';
+/**
+ * تسجيل الخروج
+ * 
+ * إنهاء الجلسة وحذف بيانات المستخدم
+ */
 
-// Destroy session and redirect to login
+require_once 'functions.php';
+
+// تدمير الجلسة
 session_destroy();
-redirect('../views/login.php');
+
+// الحذف الآمن للبيانات
+$_SESSION = [];
+
+// إعادة التوجيه
+header('Location: ../views/catalogue.php');
+exit;

@@ -1,103 +1,145 @@
 <?php
+/**
+ * صفحة إنشاء حساب جديد
+ * 
+ * تسجيل مستخدم جديد
+ */
+
 require_once '../core/functions.php';
 
-// Already logged in → redirect
+// إذا كان المستخدم مسجل دخول بالفعل
 if (isLoggedIn()) {
     redirect('catalogue.php');
 }
 
-$error   = '';
-$success = '';
-
+// معالجة إنشاء حساب (POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // التحقق من CSRF
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        setFlash('error', 'خطأ في الأمان. حاول مرة أخرى.');
+        redirect('register.php');
+    }
 
-    // Verify CSRF token
-    if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
-        $error = "Invalid security token. Please try again.";
+    $name = sanitize($_POST['name'] ?? '');
+    $email = sanitize($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
+    $confirm_password = $_POST['confirm_password'] ?? '';
+
+    // التحقق من البيانات
+    if (empty($name) || empty($email) || empty($password) || empty($confirm_password)) {
+        setFlash('error', 'يرجى ملء جميع الحقول.');
+        redirect('register.php');
+    }
+
+    if (strlen($password) < 6) {
+        setFlash('error', 'كلمة السر يجب أن تكون 6 أحرف على الأقل.');
+        redirect('register.php');
+    }
+
+    if ($password !== $confirm_password) {
+        setFlash('error', 'كلمات السر غير متطابقة.');
+        redirect('register.php');
+    }
+
+    // التحقق من عدم وجود البريد الإلكتروني
+    if (getUserByEmail($email)) {
+        setFlash('error', 'هذا البريد الإلكتروني موجود بالفعل.');
+        redirect('register.php');
+    }
+
+    // إنشاء الحساب
+    $user_data = [
+        'name' => $name,
+        'email' => $email,
+        'password' => $password
+    ];
+
+    if (createUser($user_data)) {
+        setFlash('success', '✅ تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول.');
+        redirect('login.php');
     } else {
-        $name     = sanitize($_POST['username'] ?? '');
-        $email    = sanitize($_POST['email']    ?? '');
-        $password = $_POST['password'] ?? '';
-
-        if (strlen($password) < 6) {
-            $error = "Password must be at least 6 characters.";
-        } else {
-            // Check if email already exists
-            $stmt = $pdo->prepare("SELECT id_user FROM users WHERE email = ?");
-            $stmt->execute([$email]);
-
-            if ($stmt->fetch()) {
-                $error = "This email is already registered.";
-            } else {
-                $hashed = password_hash($password, PASSWORD_DEFAULT);
-
-                $stmt = $pdo->prepare(
-                    "INSERT INTO users (name_user, email, password) VALUES (?, ?, ?)"
-                );
-
-                if ($stmt->execute([$name, $email, $hashed])) {
-                    // Auto login after register
-                    $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
-                    $stmt->execute([$email]);
-                    $_SESSION['user'] = $stmt->fetch();
-
-                    redirect('catalogue.php');
-                } else {
-                    $error = "Something went wrong. Please try again.";
-                }
-            }
-        }
+        setFlash('error', 'حدث خطأ. حاول مرة أخرى لاحقاً.');
+        redirect('register.php');
     }
 }
+
+$error = getFlash('error');
+$success = getFlash('success');
 ?>
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register — Library</title>
+    <title>إنشاء حساب</title>
     <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body>
+    <!-- شريط التنقل -->
+    <nav class="navbar">
+        <div class="container">
+            <a href="catalogue.php" class="navbar-brand">📚 مكتبة</a>
+            <ul class="navbar-links">
+                <li><a href="catalogue.php">الرئيسية</a></li>
+                <li><a href="login.php">دخول</a></li>
+            </ul>
+        </div>
+    </nav>
 
-<div class="form-wrapper">
+    <!-- صندوق إنشاء الحساب -->
     <div class="form-box">
-        <h1>📚 Library</h1>
-        <p class="subtitle">Create a new account</p>
+        <h1>📝 إنشاء حساب جديد</h1>
 
         <?php if ($error): ?>
-            <div class="alert alert-error">⚠️ <?= $error ?></div>
+            <div class="alert alert-error"><?php echo htmlspecialchars($error); ?></div>
         <?php endif; ?>
 
-        <form action="" method="POST">
-            <input type="hidden" name="csrf_token" value="<?= getCSRFToken() ?>">
+        <?php if ($success): ?>
+            <div class="alert alert-success"><?php echo htmlspecialchars($success); ?></div>
+        <?php endif; ?>
+
+        <form method="POST" action="">
+            <!-- رمز الحماية -->
+            <input type="hidden" name="csrf_token" value="<?php echo generateCsrfToken(); ?>">
+
+            <!-- الاسم -->
             <div class="form-group">
-                <label for="username">Full Name</label>
-                <input type="text" id="username" name="username"
-                       placeholder="Your name" required
-                       value="<?= sanitize($_POST['username'] ?? '') ?>">
+                <label>الاسم الكامل *</label>
+                <input type="text" name="name" placeholder="أدخل اسمك" required maxlength="100">
             </div>
+
+            <!-- البريد الإلكتروني -->
             <div class="form-group">
-                <label for="email">Email</label>
-                <input type="email" id="email" name="email"
-                       placeholder="you@example.com" required
-                       value="<?= sanitize($_POST['email'] ?? '') ?>">
+                <label>البريد الإلكتروني *</label>
+                <input type="email" name="email" placeholder="أدخل بريدك الإلكتروني" required>
             </div>
+
+            <!-- كلمة السر -->
             <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password"
-                       placeholder="Min. 6 characters" required>
+                <label>كلمة السر *</label>
+                <input type="password" name="password" placeholder="6 أحرف على الأقل" required minlength="6">
             </div>
-            <button type="submit" class="btn btn-primary" style="width:100%;margin-top:.5rem">
-                Create Account
-            </button>
+
+            <!-- تأكيد كلمة السر -->
+            <div class="form-group">
+                <label>تأكيد كلمة السر *</label>
+                <input type="password" name="confirm_password" placeholder="أعد إدخال كلمة السر" required minlength="6">
+            </div>
+
+            <!-- زر الإنشاء -->
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px;">✅ إنشاء الحساب</button>
+
+            <!-- رابط الدخول -->
+            <p style="text-align: center; margin-top: 20px; color: var(--gray);">
+                هل لديك حساب بالفعل؟ <a href="login.php" style="color: var(--primary); text-decoration: none; font-weight: 600;">دخول الآن</a>
+            </p>
         </form>
-
-        <p class="form-footer-link">
-            Already have an account? <a href="login.php">Sign in</a>
-        </p>
     </div>
-</div>
 
+    <!-- التذييل -->
+    <footer class="footer">
+        <p>&copy; 2026 مكتبة. جميع الحقوق محفوظة.</p>
+    </footer>
 </body>
 </html>
