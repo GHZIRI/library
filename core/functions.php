@@ -166,7 +166,7 @@ function getAllBooks($search = '', $type_id = '') {
     $query = "SELECT b.*, bt.type_name 
               FROM books b 
               JOIN book_types bt ON b.type_id = bt.type_id 
-              WHERE b.available_buy = TRUE";
+              WHERE (b.available_buy = TRUE OR b.available_rental = TRUE)";
     
     $params = [];
     
@@ -324,4 +324,36 @@ function createRentalOrder($data) {
         date('Y-m-d'),
         $data['end_date']
     ]);
+}
+
+/**
+ * الحصول على طلبات الشراء لمستخدم معين
+ */
+function getUserBuyOrders($user_id) {
+    global $pdo;
+    $stmt = $pdo->prepare("
+        SELECT o.*, b.title, b.cover_image, b.price_buy 
+        FROM orders_buy o 
+        JOIN books b ON o.book_id = b.book_id 
+        WHERE o.user_id = ? 
+        ORDER BY o.created_at DESC
+    ");
+    $stmt->execute([$user_id]);
+    return $stmt->fetchAll();
+}
+
+/**
+ * الحصول على طلبات الكراء لمستخدم معين
+ */
+function getUserRentalOrders($user_id) {
+    global $pdo;
+    $stmt = $pdo->prepare("
+        SELECT o.*, b.title, b.cover_image, b.price_rental 
+        FROM orders_rental o 
+        JOIN books b ON o.book_id = b.book_id 
+        WHERE o.user_id = ? 
+        ORDER BY o.created_at DESC
+    ");
+    $stmt->execute([$user_id]);
+    return $stmt->fetchAll();
 }

@@ -60,7 +60,7 @@ CREATE TABLE users (
 -- البريد: admin@library.com
 -- كلمة السر: admin123
 INSERT INTO users (name_user, email, password, role) VALUES
-('Admin', 'admin@library.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin');
+('Admin', 'admin@library.com', '$2y$10$fNzs7g97w7icTyyt7JEXfeCP6mOdRTAtGid/2ONNLYSUa46I2yqA2', 'admin');
 
 -- =====================================================
 -- جدول طلبات الشراء (Orders Buy)

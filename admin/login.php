@@ -1,113 +1,150 @@
 <?php
 /**
- * صفحة دخول الأدمين
+ * Admin Login Page
  * 
- * تسجيل دخول للأدمين فقط
+ * Sets sessions and allows admin access only.
  */
 
-require_once '../core/functions.php';
+session_start();
 
-// إذا كان المستخدم أدمين بالفعل
-if (isLoggedIn() && isAdmin()) {
-    redirect('dashboard.php');
+// Import database connection
+require_once '../core/db.php';
+
+// Message variables
+$error_message = '';
+$success_message = '';
+$debug_message = '';
+
+// If already logged in as admin, redirect to admin dashboard
+if (isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true) {
+    header('Location: dashboard.php');
+    exit;
 }
 
-// معالجة تسجيل الدخول (POST)
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // التحقق من CSRF
-    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
-        setFlash('error', 'خطأ في الأمان. حاول مرة أخرى.');
-        redirect('login.php');
-    }
+$debug_mode = false; // Set to true to debug
 
-    $email = sanitize($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
+// Process login (POST)
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email = isset($_POST['email']) ? trim($_POST['email']) : '';
+    $password = isset($_POST['password']) ? $_POST['password'] : '';
 
     if (empty($email) || empty($password)) {
-        setFlash('error', 'يرجى ملء جميع الحقول.');
-        redirect('login.php');
-    }
-
-    // البحث عن المستخدم
-    $user = getUserByEmail($email);
-
-    if ($user && $user['role'] === 'admin' && password_verify($password, $user['password'])) {
-        // تسجيل دخول الأدمين
-        $_SESSION['user_id'] = $user['user_id'];
-        $_SESSION['role'] = 'admin';
-        
-        setFlash('success', '✅ تم تسجيل الدخول بنجاح.');
-        redirect('dashboard.php');
+        $error_message = 'Please enter your email and password.';
     } else {
-        setFlash('error', '❌ البريد الإلكتروني أو كلمة السر غير صحيحة أو غير مصرح.');
-        redirect('login.php');
+        try {
+            // Find admin user
+            $stmt = $pdo->prepare("
+                SELECT user_id, name_user, email, password, role 
+                FROM users 
+                WHERE email = ? AND role = 'admin'
+            ");
+            
+            if ($debug_mode) {
+                $debug_message = "Searching for: {$email}";
+            }
+            
+            $stmt->execute([$email]);
+            $admin = $stmt->fetch();
+
+            if (!$admin) {
+                if ($debug_mode) {
+                    $debug_message .= " - User not found";
+                }
+                $error_message = 'Incorrect email or password.';
+            } else {
+                if ($debug_mode) {
+                    $debug_message .= " - User found: " . $admin['name_user'];
+                }
+                
+                // Verify password
+                $password_match = password_verify($password, $admin['password']);
+                
+                if ($debug_mode) {
+                    $debug_message .= " - Password match check: " . ($password_match ? "Success" : "Failed");
+                }
+                
+                if ($password_match) {
+                    // Set session variables
+                    $_SESSION['user_id'] = $admin['user_id'];
+                    $_SESSION['role'] = $admin['role'];
+                    $_SESSION['admin_logged_in'] = true;
+                    $_SESSION['admin_id'] = $admin['user_id'];
+                    $_SESSION['admin_name'] = $admin['name_user'];
+                    
+                    // Redirect to dashboard
+                    header('Location: dashboard.php');
+                    exit;
+                } else {
+                    $error_message = 'Incorrect email or password.';
+                }
+            }
+        } catch (PDOException $e) {
+            if ($debug_mode) {
+                $error_message = 'Database error: ' . htmlspecialchars($e->getMessage());
+            } else {
+                $error_message = 'An error occurred. Please try again later.';
+            }
+        } catch (Exception $e) {
+            if ($debug_mode) {
+                $error_message = 'General error: ' . htmlspecialchars($e->getMessage());
+            } else {
+                $error_message = 'An error occurred. Please try again later.';
+            }
+        }
     }
 }
-
-$error = getFlash('error');
-$success = getFlash('success');
 ?>
-
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>دخول الأدمين</title>
+    <title>Admin Login - Library</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/login.css">
 </head>
 <body>
-    <!-- شريط التنقل -->
-    <nav class="navbar">
-        <div class="container">
-            <a href="../views/catalogue.php" class="navbar-brand">📚 مكتبة</a>
-            <ul class="navbar-links">
-                <li><a href="../views/catalogue.php">الرئيسية</a></li>
-            </ul>
-        </div>
-    </nav>
+    <div class="login-container">
+        <h1>🔐 Admin Login</h1>
 
-    <!-- صندوق دخول الأدمين -->
-    <div class="form-box">
-        <h1>🔐 دخول الأدمين</h1>
-
-        <?php if ($error): ?>
-            <div class="alert alert-error"><?php echo htmlspecialchars($error); ?></div>
+        <?php if (!empty($error_message)): ?>
+            <div class="error-message">
+                <?php echo htmlspecialchars($error_message); ?>
+            </div>
         <?php endif; ?>
 
-        <?php if ($success): ?>
-            <div class="alert alert-success"><?php echo htmlspecialchars($success); ?></div>
+        <?php if (!empty($debug_message)): ?>
+            <div style="background: #fff3cd; color: #856404; padding: 12px; border-radius: 4px; margin-bottom: 20px; border: 1px solid #ffeaa7; text-align: left;">
+                🔍 DEBUG: <?php echo htmlspecialchars($debug_message); ?>
+            </div>
         <?php endif; ?>
 
         <form method="POST" action="">
-            <!-- رمز الحماية -->
-            <input type="hidden" name="csrf_token" value="<?php echo generateCsrfToken(); ?>">
-
-            <!-- البريد الإلكتروني -->
             <div class="form-group">
-                <label>البريد الإلكتروني *</label>
-                <input type="email" name="email" placeholder="البريد الإلكتروني للأدمين" required>
+                <label for="email">📧 Email Address</label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    name="email" 
+                    required 
+                    placeholder="Enter your email"
+                    value="<?php echo isset($_POST['email']) ? htmlspecialchars($_POST['email']) : ''; ?>"
+                >
             </div>
 
-            <!-- كلمة السر -->
             <div class="form-group">
-                <label>كلمة السر *</label>
-                <input type="password" name="password" placeholder="أدخل كلمة السر" required>
+                <label for="password">🔑 Password</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    name="password" 
+                    required 
+                    placeholder="Enter your password"
+                >
             </div>
 
-            <!-- زر الدخول -->
-            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px;">🔓 دخول</button>
-
-            <!-- رابط العودة -->
-            <p style="text-align: center; margin-top: 20px; color: var(--gray);">
-                <a href="../views/catalogue.php" style="color: var(--primary); text-decoration: none; font-weight: 600;">← العودة للرئيسية</a>
-            </p>
+            <button type="submit" class="login-btn">Login</button>
         </form>
     </div>
-
-    <!-- التذييل -->
-    <footer class="footer">
-        <p>&copy; 2026 مكتبة. جميع الحقوق محفوظة.</p>
-    </footer>
 </body>
 </html>

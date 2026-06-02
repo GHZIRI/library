@@ -1,22 +1,22 @@
 <?php
 /**
- * صفحة تسجيل الدخول
+ * Login Page
  * 
- * تسجيل دخول للمستخدمين العاديين
+ * Login form for regular users.
  */
 
 require_once '../core/functions.php';
 
-// إذا كان المستخدم مسجل دخول بالفعل
+// If user is already logged in, redirect to catalog
 if (isLoggedIn()) {
     redirect('catalogue.php');
 }
 
-// معالجة تسجيل الدخول (POST)
+// Process login (POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // التحقق من CSRF
+    // Verify CSRF token
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
-        setFlash('error', 'خطأ في الأمان. حاول مرة أخرى.');
+        setFlash('error', 'Security error. Please try again.');
         redirect('login.php');
     }
 
@@ -24,22 +24,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
 
     if (empty($email) || empty($password)) {
-        setFlash('error', 'يرجى ملء جميع الحقول.');
+        setFlash('error', 'Please fill in all fields.');
         redirect('login.php');
     }
 
-    // البحث عن المستخدم
+    // Find the user
     $user = getUserByEmail($email);
 
     if ($user && password_verify($password, $user['password'])) {
-        // تسجيل الدخول
+        // Set sessions
         $_SESSION['user_id'] = $user['user_id'];
         $_SESSION['role'] = $user['role'];
         
-        setFlash('success', '✅ تم تسجيل الدخول بنجاح.');
+        setFlash('success', '✅ Successfully logged in.');
         redirect('catalogue.php');
     } else {
-        setFlash('error', '❌ البريد الإلكتروني أو كلمة السر غير صحيحة.');
+        setFlash('error', '❌ Incorrect email or password.');
         redirect('login.php');
     }
 }
@@ -49,28 +49,40 @@ $success = getFlash('success');
 ?>
 
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الدخول</title>
+    <title>Login</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+    <style>
+        .navbar-links {
+            display: flex;
+            gap: 20px;
+            list-style: none;
+            flex-direction: row;
+        }
+        .form-group label {
+            text-align: left;
+            display: block;
+        }
+    </style>
 </head>
 <body>
-    <!-- شريط التنقل -->
+    <!-- Navigation Bar -->
     <nav class="navbar">
         <div class="container">
-            <a href="catalogue.php" class="navbar-brand">📚 مكتبة</a>
+            <a href="catalogue.php" class="navbar-brand">📚 Library</a>
             <ul class="navbar-links">
-                <li><a href="catalogue.php">الرئيسية</a></li>
-                <li><a href="register.php">إنشاء حساب</a></li>
+                <li><a href="catalogue.php">Home</a></li>
+                <li><a href="register.php">Register</a></li>
             </ul>
         </div>
     </nav>
 
-    <!-- صندوق تسجيل الدخول -->
-    <div class="form-box">
-        <h1>🔐 تسجيل الدخول</h1>
+    <!-- Login Box -->
+    <div class="form-box" style="margin: 60px auto; max-width: 400px; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.08);">
+        <h1 style="text-align: center; margin-bottom: 25px; font-weight: 700; color: var(--dark);">🔐 Login</h1>
 
         <?php if ($error): ?>
             <div class="alert alert-error"><?php echo htmlspecialchars($error); ?></div>
@@ -81,34 +93,36 @@ $success = getFlash('success');
         <?php endif; ?>
 
         <form method="POST" action="">
-            <!-- رمز الحماية -->
+            <!-- CSRF Token -->
             <input type="hidden" name="csrf_token" value="<?php echo generateCsrfToken(); ?>">
 
-            <!-- البريد الإلكتروني -->
-            <div class="form-group">
-                <label>البريد الإلكتروني *</label>
-                <input type="email" name="email" placeholder="أدخل بريدك الإلكتروني" required>
+            <!-- Email Address -->
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label style="margin-bottom: 8px; font-weight: 600; color: var(--dark);">Email Address *</label>
+                <input type="email" name="email" placeholder="Enter your email address" required style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px;">
             </div>
 
-            <!-- كلمة السر -->
-            <div class="form-group">
-                <label>كلمة السر *</label>
-                <input type="password" name="password" placeholder="أدخل كلمة السر" required>
+            <!-- Password -->
+            <div class="form-group" style="margin-bottom: 25px;">
+                <label style="margin-bottom: 8px; font-weight: 600; color: var(--dark);">Password *</label>
+                <input type="password" name="password" placeholder="Enter your password" required style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px;">
             </div>
 
-            <!-- زر التسجيل -->
-            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px;">🔓 دخول</button>
+            <!-- Submit Button -->
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-weight: 600; border: none;">🔓 Login</button>
 
-            <!-- رابط الإنشاء -->
-            <p style="text-align: center; margin-top: 20px; color: var(--gray);">
-                ليس لديك حساب؟ <a href="register.php" style="color: var(--primary); text-decoration: none; font-weight: 600;">إنشاء حساب الآن</a>
+            <!-- Registration Link -->
+            <p style="text-align: center; margin-top: 20px; color: var(--gray); font-size: 14px;">
+                Don't have an account? <a href="register.php" style="color: var(--primary); text-decoration: none; font-weight: 600;">Register now</a>
             </p>
         </form>
     </div>
 
-    <!-- التذييل -->
+    <!-- Footer -->
     <footer class="footer">
-        <p>&copy; 2026 مكتبة. جميع الحقوق محفوظة.</p>
+        <div class="container">
+            <p>&copy; 2026 Library. All rights reserved.</p>
+        </div>
     </footer>
 </body>
 </html>

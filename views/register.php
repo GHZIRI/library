@@ -1,22 +1,22 @@
 <?php
 /**
- * صفحة إنشاء حساب جديد
+ * Register Page
  * 
- * تسجيل مستخدم جديد
+ * Registration form for new users.
  */
 
 require_once '../core/functions.php';
 
-// إذا كان المستخدم مسجل دخول بالفعل
+// If user is already logged in, redirect to catalog
 if (isLoggedIn()) {
     redirect('catalogue.php');
 }
 
-// معالجة إنشاء حساب (POST)
+// Process registration (POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // التحقق من CSRF
+    // Verify CSRF token
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
-        setFlash('error', 'خطأ في الأمان. حاول مرة أخرى.');
+        setFlash('error', 'Security error. Please try again.');
         redirect('register.php');
     }
 
@@ -25,29 +25,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
 
-    // التحقق من البيانات
+    // Verify fields
     if (empty($name) || empty($email) || empty($password) || empty($confirm_password)) {
-        setFlash('error', 'يرجى ملء جميع الحقول.');
+        setFlash('error', 'Please fill in all fields.');
         redirect('register.php');
     }
 
     if (strlen($password) < 6) {
-        setFlash('error', 'كلمة السر يجب أن تكون 6 أحرف على الأقل.');
+        setFlash('error', 'Password must be at least 6 characters.');
         redirect('register.php');
     }
 
     if ($password !== $confirm_password) {
-        setFlash('error', 'كلمات السر غير متطابقة.');
+        setFlash('error', 'Passwords do not match.');
         redirect('register.php');
     }
 
-    // التحقق من عدم وجود البريد الإلكتروني
+    // Verify if email already exists
     if (getUserByEmail($email)) {
-        setFlash('error', 'هذا البريد الإلكتروني موجود بالفعل.');
+        setFlash('error', 'This email is already registered.');
         redirect('register.php');
     }
 
-    // إنشاء الحساب
+    // Create user
     $user_data = [
         'name' => $name,
         'email' => $email,
@@ -55,10 +55,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     ];
 
     if (createUser($user_data)) {
-        setFlash('success', '✅ تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول.');
+        setFlash('success', '✅ Account created successfully! You can now log in.');
         redirect('login.php');
     } else {
-        setFlash('error', 'حدث خطأ. حاول مرة أخرى لاحقاً.');
+        setFlash('error', 'An error occurred. Please try again later.');
         redirect('register.php');
     }
 }
@@ -68,28 +68,40 @@ $success = getFlash('success');
 ?>
 
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إنشاء حساب</title>
+    <title>Register</title>
     <link rel="stylesheet" href="../assets/css/style.css">
+    <style>
+        .navbar-links {
+            display: flex;
+            gap: 20px;
+            list-style: none;
+            flex-direction: row;
+        }
+        .form-group label {
+            text-align: left;
+            display: block;
+        }
+    </style>
 </head>
 <body>
-    <!-- شريط التنقل -->
+    <!-- Navigation Bar -->
     <nav class="navbar">
         <div class="container">
-            <a href="catalogue.php" class="navbar-brand">📚 مكتبة</a>
+            <a href="catalogue.php" class="navbar-brand">📚 Library</a>
             <ul class="navbar-links">
-                <li><a href="catalogue.php">الرئيسية</a></li>
-                <li><a href="login.php">دخول</a></li>
+                <li><a href="catalogue.php">Home</a></li>
+                <li><a href="login.php">Login</a></li>
             </ul>
         </div>
     </nav>
 
-    <!-- صندوق إنشاء الحساب -->
-    <div class="form-box">
-        <h1>📝 إنشاء حساب جديد</h1>
+    <!-- Register Box -->
+    <div class="form-box" style="margin: 40px auto; max-width: 450px; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.08);">
+        <h1 style="text-align: center; margin-bottom: 25px; font-weight: 700; color: var(--dark);">📝 Register</h1>
 
         <?php if ($error): ?>
             <div class="alert alert-error"><?php echo htmlspecialchars($error); ?></div>
@@ -100,46 +112,48 @@ $success = getFlash('success');
         <?php endif; ?>
 
         <form method="POST" action="">
-            <!-- رمز الحماية -->
+            <!-- CSRF Token -->
             <input type="hidden" name="csrf_token" value="<?php echo generateCsrfToken(); ?>">
 
-            <!-- الاسم -->
-            <div class="form-group">
-                <label>الاسم الكامل *</label>
-                <input type="text" name="name" placeholder="أدخل اسمك" required maxlength="100">
+            <!-- Full Name -->
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label style="margin-bottom: 6px; font-weight: 600; color: var(--dark);">Full Name *</label>
+                <input type="text" name="name" placeholder="Enter your full name" required maxlength="100" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px;">
             </div>
 
-            <!-- البريد الإلكتروني -->
-            <div class="form-group">
-                <label>البريد الإلكتروني *</label>
-                <input type="email" name="email" placeholder="أدخل بريدك الإلكتروني" required>
+            <!-- Email Address -->
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label style="margin-bottom: 6px; font-weight: 600; color: var(--dark);">Email Address *</label>
+                <input type="email" name="email" placeholder="Enter your email address" required style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px;">
             </div>
 
-            <!-- كلمة السر -->
-            <div class="form-group">
-                <label>كلمة السر *</label>
-                <input type="password" name="password" placeholder="6 أحرف على الأقل" required minlength="6">
+            <!-- Password -->
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label style="margin-bottom: 6px; font-weight: 600; color: var(--dark);">Password *</label>
+                <input type="password" name="password" placeholder="At least 6 characters" required minlength="6" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px;">
             </div>
 
-            <!-- تأكيد كلمة السر -->
-            <div class="form-group">
-                <label>تأكيد كلمة السر *</label>
-                <input type="password" name="confirm_password" placeholder="أعد إدخال كلمة السر" required minlength="6">
+            <!-- Confirm Password -->
+            <div class="form-group" style="margin-bottom: 25px;">
+                <label style="margin-bottom: 6px; font-weight: 600; color: var(--dark);">Confirm Password *</label>
+                <input type="password" name="confirm_password" placeholder="Re-enter your password" required minlength="6" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px;">
             </div>
 
-            <!-- زر الإنشاء -->
-            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px;">✅ إنشاء الحساب</button>
+            <!-- Submit Button -->
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-weight: 600; border: none;">✅ Register</button>
 
-            <!-- رابط الدخول -->
-            <p style="text-align: center; margin-top: 20px; color: var(--gray);">
-                هل لديك حساب بالفعل؟ <a href="login.php" style="color: var(--primary); text-decoration: none; font-weight: 600;">دخول الآن</a>
+            <!-- Login Link -->
+            <p style="text-align: center; margin-top: 20px; color: var(--gray); font-size: 14px;">
+                Already have an account? <a href="login.php" style="color: var(--primary); text-decoration: none; font-weight: 600;">Login now</a>
             </p>
         </form>
     </div>
 
-    <!-- التذييل -->
+    <!-- Footer -->
     <footer class="footer">
-        <p>&copy; 2026 مكتبة. جميع الحقوق محفوظة.</p>
+        <div class="container">
+            <p>&copy; 2026 Library. All rights reserved.</p>
+        </div>
     </footer>
 </body>
 </html>
