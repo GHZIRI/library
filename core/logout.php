@@ -14,5 +14,5 @@ session_destroy();
 $_SESSION = [];
 
 // إعادة التوجيه
-header('Location: ../views/catalogue.php');
+header('Location: ../admin/login.php');
 exit;
