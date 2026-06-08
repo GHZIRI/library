@@ -40,7 +40,7 @@ $books = $stmt->fetchAll();
                      if(!empty($book['cover_image'])){
                          echo "<img src='../assets/images/{$book['cover_image']}' alt='cover'>";
                      } else {
-                    echo "<div class='no-image'>📖</div>";
+                    echo "<div class='no-image'></div>";
                      }
                      }
                     ?>

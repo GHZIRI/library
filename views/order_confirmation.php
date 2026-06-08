@@ -1,80 +1,136 @@
 <?php
-/**
- * Order Confirmation Page
- * 
- * Displayed after a successful purchase or rental transaction.
- */
+session_start();
+require_once '../core/db.php';
 
-require_once '../core/functions.php';
+if(!isset($_SESSION['user_id'])){
+    header("location: login.php");
+    exit();
+}
+
+$typ = $_GET('type') ?? null;
+$id = $_GET['id'] ?? null;
+if(!$typ || !$id){
+    header("location: catalogue.php");
+    exit();
+}
+if($typ === 'buy'){
+  $stmt = $pdo->prepare("
+        SELECT purchases.*, books.title, books.author
+        FROM purchases
+        JOIN books ON purchases.book_id = books.id
+        WHERE purchases.id = ?
+        AND purchases.user_id = ?
+    ");
+ $stmt->execute($id, $_SESSION['user_id']);
+ $order = $stmt->fetch();
+}
+if($typ === 'rent'){
+      $stmt = $pdo->prepare("
+        SELECT rentals.*, books.title, books.author
+        FROM rentals
+        JOIN books ON rentals.book_id = books.id
+        WHERE rentals.id = ?
+        AND rentals.user_id = ?
+    ");
+    $stmt->execute([$_SESSION['user_id']]);
+    $order = $stmt->fetch();
+}
+if(!$order){
+    header("location: catalohue.php");
+    exit();
+}
 ?>
 
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Order Confirmation</title>
-    <link rel="stylesheet" href="../assets/css/style.css">
-    <style>
-        .navbar-links {
-            display: flex;
-            gap: 20px;
-            list-style: none;
-            flex-direction: row;
-        }
-    </style>
+    <title>Document</title>
 </head>
 <body>
-    <!-- Navigation Bar -->
-    <nav class="navbar">
-        <div class="container">
-            <a href="catalogue.php" class="navbar-brand">📚 Library</a>
-            <ul class="navbar-links">
-                <li><a href="catalogue.php">Home</a></li>
-                <?php if (isLoggedIn()): ?>
-                    <li><a href="user_dashboard.php">My Dashboard</a></li>
-                    <li><a href="../core/logout.php">Logout</a></li>
-                <?php endif; ?>
-            </ul>
+      <nav class="navbar">
+        <h1>Library</h1>
+        <div class="nav-links">
+            <a href="catalogue.php">Catalogue</a>
+            <a href="user_dashboard.php">My Account</a>
+            <a href="../core/logout.php">Logout</a>
         </div>
-    </nav>
-
-    <!-- Page Content -->
-    <div class="container">
-        <div style="max-width: 600px; margin: 60px auto; background-color: white; padding: 40px; border-radius: 10px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.08);">
-            <!-- Icon -->
-            <p style="font-size: 80px; margin-bottom: 20px;">✅</p>
-
-            <!-- Main Message -->
-            <h1 style="color: var(--success); font-size: 28px; margin-bottom: 15px; font-weight: 700;">Order Confirmed!</h1>
-
-            <!-- Description -->
-            <p style="color: var(--gray); font-size: 16px; line-height: 1.8; margin-bottom: 30px;">
-                Thank you for using our services! Your order has been successfully received and is currently being processed. We will contact you shortly.
-            </p>
-
-            <!-- Info Summary Box -->
-            <div style="background-color: var(--light); padding: 20px; border-radius: 5px; margin-bottom: 30px; text-align: left;">
-                <p style="color: var(--gray); margin-bottom: 10px; font-size: 15px;">📋 <strong>Order ID:</strong> #<?php echo date('YmdHis'); ?></p>
-                <p style="color: var(--gray); margin-bottom: 10px; font-size: 15px;">📅 <strong>Date:</strong> <?php echo formatDate(date('Y-m-d H:i:s')); ?></p>
-                <p style="color: var(--gray); font-size: 15px;">⏳ <strong>Status:</strong> <span style="background: rgba(243, 156, 18, 0.1); color: #d35400; padding: 2px 8px; border-radius: 15px; font-size: 13px; font-weight: 600;">Processing</span></p>
+      </nav>
+      <div class="cornfirmation">
+        <div class="confirmation-box">
+            <h2>Order Corfirmed!</h2>
+            <p>Think you for your Order</p>
+        </div>
+        <div class="detail-row">
+            <span>Book:</span>
+            <strong><?php htmlspecialchars($order['title']) ?></strong>
+        </div>
+         <div class="detail-row">
+                <span>Author:</span>
+                <strong><?php htmlspecialchars($order['author']) ?></strong>
             </div>
 
-            <!-- Actions -->
-            <div style="display: flex; gap: 10px; justify-content: center;">
-                <a href="catalogue.php" class="btn btn-primary" style="padding: 10px 25px; text-decoration: none; font-weight: 600;">🏠 Return Home</a>
-                <?php if (isLoggedIn()): ?>
-                    <a href="user_dashboard.php" class="btn btn-secondary" style="padding: 10px 25px; text-decoration: none; font-weight: 600;">👤 My Dashboard</a>
-                <?php endif; ?>
-            </div>
+            <?php  
+              if($typ === 'buy'){};
+            ?>
+             <div class="detail-row">
+                    <span>Quantity:</span>
+                    <strong><?= $order['quantity'] ?></strong>
+                </div>
+
+                <div class="detail-row">
+                    <span>Total Price:</span>
+                    <strong><?= $order['total_price'] ?> MAD</strong>
+                </div>
+
+                <!-- date() تحول التاريخ من 2024-01-15 إلى 15/01/2024 -->
+                <div class="detail-row">
+                    <span>Date:</span>
+                    <strong><?= date('d/m/Y', strtotime($order['purchased_at'])) ?></strong>
+                </div>
+
+            
+            <?php if ($type === 'rent') { ?>
+
+                <div class="detail-row">
+                    <span>From:</span>
+                    <strong><?php date('d/m/Y', strtotime($order['rent_from'])) ?></strong>
+                </div>
+
+                <div class="detail-row">
+                    <span>Until:</span>
+                    <strong><?php date('d/m/Y', strtotime($order['rent_until'])) ?></strong>
+                </div>
+
+                <div class="detail-row">
+                    <span>Total Price:</span>
+                    <strong><?php $order['total_price'] ?> MAD</strong>
+                </div>
+
+                <div class="detail-row">
+                    <span>Status:</span>
+                    <strong class="status-active"> Active</strong>
+                </div>
+
+            <?php } ?>
+
         </div>
+
+        
+        <div class="confirmation-actions">
+            <a href="catalogue.php" class="btn-primary"> Continue Shopping</a>
+            <a href="user_dashboard.php" class="btn-secondary"> My Account</a>
+        </div>
+
     </div>
+</div>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <p>&copy; 2026 Library. All rights reserved.</p>
-        </div>
-    </footer>
 </body>
 </html>
+
+      </div>
+</body>
+</html>
+
+

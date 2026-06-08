@@ -1,176 +1,143 @@
 <?php
-/**
- * User Dashboard
- * 
- * Interactive overview of purchases and rentals for the current logged-in user.
- */
+session_start();
+require_once '../core/db.php';
 
-require_once '../core/functions.php';
+if(!isset($_SESSION['user_id'])){
+    header("locatin: login.php");
+    exit();
+}
+$user_id = $_SESSION('user_id');
 
-// Require login
-requireLogin();
 
-$user_id = getCurrentUserId();
-$user = getUserById($user_id);
-$user_name = $user['name_user'] ?? 'User';
+$stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+$stmt->execute([$user_id]);
+$user = $stmt->fetch();
 
-// Retrieve purchase and rental orders
-$buy_orders = getUserBuyOrders($user_id);
-$rental_orders = getUserRentalOrders($user_id);
+
+$stmt = $pdo->prepare("
+    SELECT purchases.*, books.title, books.author, books.cover_image
+    FROM purchases
+    JOIN books ON purchases.book_id = books.id
+    WHERE purchases.user_id = ?
+    ORDER BY purchases.purchased_at DESC
+");
+$stmt->execute([$user_id]);
+$purchases  = $stmt->fetchAll();
+
+$stmt = $pdo->prepare("
+    SELECT rentals.*, books.title, books.author, books.cover_image
+    FROM rentals
+    JOIN books ON rentals.book_id = books.id
+    WHERE rentals.user_id = ?
+    ORDER BY rentals.created_at DESC
+");
+$stmt->execute([$user_id]);
+$rentals = $stmt->fetchAll();
 ?>
 
+
 <!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Dashboard - Library</title>
-    <link rel="stylesheet" href="../assets/css/style.css">
-    <link rel="stylesheet" href="../assets/css/user_dashbord.css">
+    <title>Document</title>
 </head>
 <body>
-    <!-- Navigation Bar -->
-    <nav class="navbar">
-        <div class="container">
-            <a href="catalogue.php" class="navbar-brand">📚 Library</a>
-            <ul class="navbar-links">
-                <li><a href="catalogue.php">Home</a></li>
-                <li><a href="user_dashboard.php">My Dashboard</a></li>
-                <li><a href="../core/logout.php" class="btn btn-danger" style="color: white; padding: 6px 12px; font-size: 14px; text-decoration: none; border-radius: 5px;">Logout</a></li>
-            </ul>
-        </div>
-    </nav>
+        <nav class="navbar">
+            <h1>Libriry</h1>
+            <div class="nav-links">
+                 <a href="catalogue.php">Catalogue</a>
+                 <a href="user_dashboard.php">My Account</a>
+                 <a href="../core/logout.php">Logout</a>
+            </div>
+        </nav>
 
-    <!-- Dashboard Content -->
-    <div class="container">
-        
-        <!-- Welcome Header -->
-        <div class="dashboard-header" style="text-align: left;">
-            <h1 style="font-size: 28px; margin-bottom: 5px; font-weight: 700;">👤 Welcome, <?php echo htmlspecialchars($user_name); ?>!</h1>
-            <p style="opacity: 0.9;">Track and manage your purchases, rented books, and transaction history.</p>
-        </div>
-
-        <!-- Quick Navigation Tabs -->
-        <ul style="display: flex; gap: 10px; margin-bottom: 30px; border-bottom: 2px solid var(--border); padding-bottom: 10px; list-style: none; padding-left: 0; align-items: center; width: 100%;">
-            <li><a href="#buy-orders" style="color: var(--primary); text-decoration: none; font-weight: 600; padding: 10px 20px; border-bottom: 3px solid var(--primary); display: inline-block;">🛒 My Purchases</a></li>
-            <li><a href="#rental-orders" style="color: var(--gray); text-decoration: none; font-weight: 600; padding: 10px 20px; display: inline-block; transition: color 0.3s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--gray)'">🔄 My Rentals</a></li>
-            <li style="margin-left: auto;"><a href="catalogue.php" class="btn btn-primary" style="padding: 8px 16px; text-decoration: none;">📚 Browse Catalogue</a></li>
-        </ul>
-
-        <!-- Purchases Section -->
-        <div id="buy-orders" class="orders-container">
-            <h2 class="section-title" style="margin-top: 0;">🛒 Purchased Books</h2>
-            
-            <?php if (count($buy_orders) > 0): ?>
-                <div style="overflow-x: auto;">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Order ID</th>
-                                <th>Book Title</th>
-                                <th style="text-align: center;">Quantity</th>
-                                <th>Total Price</th>
-                                <th>Purchase Date</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($buy_orders as $order): ?>
-                                <tr>
-                                    <td><strong>#<?php echo $order['order_buy_id']; ?></strong></td>
-                                    <td style="font-weight: 600;">📖 <?php echo htmlspecialchars($order['title']); ?></td>
-                                    <td style="text-align: center; font-weight: 700;"><?php echo $order['quantity']; ?></td>
-                                    <td style="color: var(--secondary); font-weight: 700;"><?php echo formatPrice($order['total_price']); ?></td>
-                                    <td><?php echo formatDate($order['created_at']); ?></td>
-                                    <td>
-                                        <span class="status-badge badge-<?php echo $order['status']; ?>">
-                                            <?php 
-                                            $statuses = [
-                                                'pending' => '⏳ Pending',
-                                                'confirmed' => '✅ Confirmed',
-                                                'shipped' => '🚚 Shipped',
-                                                'delivered' => '📦 Delivered',
-                                                'cancelled' => '❌ Cancelled'
-                                            ];
-                                            echo $statuses[$order['status']] ?? ucfirst($order['status']);
-                                            ?>
-                                        </span>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            <?php else: ?>
-                <div style="text-align: center; padding: 40px; background-color: var(--light); border-radius: 10px;">
-                    <p style="font-size: 50px; margin-bottom: 15px;">📭</p>
-                    <p style="color: var(--gray); font-size: 16px;">You have not purchased any books yet.</p>
-                    <a href="catalogue.php" class="btn btn-primary" style="margin-top: 15px; display: inline-block; text-decoration: none;">🛒 Browse & Buy Now</a>
-                </div>
-            <?php endif; ?>
+        <div class="stast-grid">
+            <div class="stat-cart">
+                <h3><?php count($purchases) ?></h3>
+                <p>Total Purchases</p>
+            </div>
+            <div class="stat-card">
+                <h3><?php count($rentals) ?></h3>
+                <p>Total Rentals</p>
+            </div>
         </div>
 
-        <!-- Rentals Section -->
-        <div id="rental-orders" class="orders-container">
-            <h2 class="section-title" style="margin-top: 0;">🔄 Rented Books</h2>
-            
-            <?php if (count($rental_orders) > 0): ?>
-                <div style="overflow-x: auto;">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Rental ID</th>
-                                <th>Book Title</th>
-                                <th style="text-align: center;">Duration</th>
-                                <th>Total Price</th>
-                                <th>Start Date</th>
-                                <th>Due Date</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($rental_orders as $order): ?>
-                                <tr>
-                                    <td><strong>#<?php echo $order['order_rental_id']; ?></strong></td>
-                                    <td style="font-weight: 600;">📖 <?php echo htmlspecialchars($order['title']); ?></td>
-                                    <td style="text-align: center; font-weight: 700;"><?php echo $order['rental_days']; ?> days</td>
-                                    <td style="color: var(--secondary); font-weight: 700;"><?php echo formatPrice($order['total_price']); ?></td>
-                                    <td><?php echo date('Y-m-d', strtotime($order['start_date'])); ?></td>
-                                    <td style="font-weight: 600; color: var(--danger);"><?php echo date('Y-m-d', strtotime($order['end_date'])); ?></td>
-                                    <td>
-                                        <span class="status-badge badge-<?php echo $order['status']; ?>">
-                                            <?php 
-                                            $statuses = [
-                                                'pending' => '⏳ Pending',
-                                                'active' => '🔄 Active',
-                                                'returned' => '✅ Returned',
-                                                'cancelled' => '❌ Cancelled'
-                                            ];
-                                            echo $statuses[$order['status']] ?? ucfirst($order['status']);
-                                            ?>
-                                        </span>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            <?php else: ?>
-                <div style="text-align: center; padding: 40px; background-color: var(--light); border-radius: 10px;">
-                    <p style="font-size: 50px; margin-bottom: 15px;">📭</p>
-                    <p style="color: var(--gray); font-size: 16px;">You have not rented any books yet.</p>
-                    <a href="catalogue.php" class="btn btn-secondary" style="margin-top: 15px; display: inline-block; text-decoration: none;">📖 Browse & Rent Now</a>
-                </div>
-            <?php endif; ?>
-        </div>
+       <div class="section">
+        <h2> My Purchases</h2>
 
+        <?php if (empty($purchases)) { ?>
+            <p>No purchases yet. <a href="catalogue.php">Browse books</a></p>
+        <?php } else { ?>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Book</th>
+                        <th>Author</th>
+                        <th>Quantity</th>
+                        <th>Total</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($purchases as $purchase) { ?>
+                        <tr>
+                            <td><?= htmlspecialchars($purchase['title']) ?></td>
+                            <td><?= htmlspecialchars($purchase['author']) ?></td>
+                            <td><?= $purchase['quantity'] ?></td>
+                            <td><?= $purchase['total_price'] ?> MAD</td>
+                            <td><?= date('d/m/Y', strtotime($purchase['purchased_at'])) ?></td>
+                        </tr>
+                    <?php } ?>
+                </tbody>
+            </table>
+        <?php } ?>
     </div>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <p>&copy; 2026 Library. All rights reserved.</p>
-        </div>
-    </footer>
+   
+    <div class="section">
+        <h2>My Rentals</h2>
+
+        <?php if (empty($rentals)) { ?>
+            <p>No rentals yet. <a href="catalogue.php">Browse books</a></p>
+        <?php } else { ?>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Book</th>
+                        <th>Author</th>
+                        <th>From</th>
+                        <th>Until</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($rentals as $rental) { ?>
+                        <tr>
+                            <td><?= htmlspecialchars($rental['title']) ?></td>
+                            <td><?= htmlspecialchars($rental['author']) ?></td>
+                            <td><?= date('d/m/Y', strtotime($rental['rent_from'])) ?></td>
+                            <td><?= date('d/m/Y', strtotime($rental['rent_until'])) ?></td>
+                            <td><?= $rental['total_price'] ?> MAD</td>
+                            <td>
+                                <?php
+                                if ($rental['status'] === 'active') {
+                                    echo "<span class='status-active'> Active</span>";
+                                } else {
+                                    echo "<span class='status-returned'> Returned</span>";
+                                }
+                                ?>
+                            </td>
+                        </tr>
+                    <?php } ?>
+                </tbody>
+            </table>
+        <?php } ?>
+    </div>
+
+</div>
+
 </body>
 </html>

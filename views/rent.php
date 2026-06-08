@@ -73,7 +73,7 @@ $max_date = date('Y-m-d', strtotime('+30 days'));
         }
     }
 
-    // عرض النجاح
+    
     if (isset($_GET['success'])) {
         echo "<p class='success'> Rental confirmed! <a href='user_dashboard.php'>View your rentals</a></p>";
     }
@@ -119,7 +119,7 @@ $max_date = date('Y-m-d', strtotime('+30 days'));
         <p class="out-stock"> This book is out of stock.</p>
     <?php } ?>
 
-    <a href="catalogue.php" class="btn-back">⬅️ Back to Catalogue</a>
+    <a href="catalogue.php" class="btn-back">⬅ Back to Catalogue</a>
 
 </div>
 

@@ -33,7 +33,7 @@ if (!$book) {
 
 <!-- Navigation -->
 <nav class="navbar">
-    <h1>📚 Library</h1>
+    <h1> Library</h1>
     <div class="nav-links">
         <a href="catalogue.php">Catalogue</a>
         <a href="user_dashboard.php">My Account</a>
@@ -43,33 +43,33 @@ if (!$book) {
 
 <div class="buy-container">
 
-    <h2>🛒 Buy Book</h2>
+    <h2> Buy Book</h2>
 
     <!-- معلومات الكتاب -->
     <div class="book-summary">
         <h3><?php htmlspecialchars($book['title']) ?></h3>
-        <p>✍️ <?php htmlspecialchars($book['author']) ?></p>
-        <p>💰 Price: <strong><?= $book['price_buy'] ?> MAD</strong></p>
-        <p>📦 Stock: <strong><?= $book['stock'] ?></strong></p>
+        <p><?php htmlspecialchars($book['author']) ?></p>
+        <p> Price: <strong><?= $book['price_buy'] ?> MAD</strong></p>
+        <p>Stock: <strong><?= $book['stock'] ?></strong></p>
     </div>
 
     <?php
-    // عرض الأخطاء
+    
     $errors = $_SESSION['errors'] ?? [];
     unset($_SESSION['errors']);
     if (!empty($errors)) {
         foreach ($errors as $error) {
-            echo "<p class='error'>❌ {$error}</p>";
+            echo "<p class='error'>{$error}</p>";
         }
     }
 
-    // عرض النجاح
+  
     if (isset($_GET['success'])) {
-        echo "<p class='success'>✅ Purchase successful! <a href='user_dashboard.php'>View your orders</a></p>";
+        echo "<p class='success'> Purchase successful! <a href='user_dashboard.php'>View your orders</a></p>";
     }
     ?>
 
-    <!-- إذا الكتاب في المخزون نعرض الفورم -->
+    
     <?php if ($book['stock'] > 0) { ?>
 
         <form action="../core/functions.php" method="POST">
@@ -84,15 +84,15 @@ if (!$book) {
                        value="1" required>
             </div>
 
-            <button type="submit" class="btn-primary">🛒 Confirm Purchase</button>
+            <button type="submit" class="btn-primary"> Confirm Purchase</button>
 
         </form>
 
     <?php } else { ?>
-        <p class="out-stock">❌ This book is out of stock.</p>
+        <p class="out-stock"> This book is out of stock.</p>
     <?php } ?>
 
-    <a href="catalogue.php" class="btn-back">⬅️ Back to Catalogue</a>
+    <a href="catalogue.php" class="btn-back">⬅ Back to Catalogue</a>
 
 </div>
 
