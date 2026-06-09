@@ -1,0 +1,1234 @@
+/*
+ * ============================================================
+ * الملف: assets/css/main.css
+ * الوظيفة: تصميم جميع صفحات الموقع
+ * ============================================================
+ *
+ * كيف يشتغل CSS؟
+ * - نكتب "selector" → من نريد نصمم (مثل .navbar, .btn)
+ * - بعدها نكتب "properties" → كيف يبدو (لون، حجم، مسافة)
+ *
+ * هيكل هذا الملف:
+ *   1. المتغيرات (الألوان والخطوط)
+ *   2. الـ Reset (نمسح التصميم الافتراضي للمتصفح)
+ *   3. Navbar — الشريط العلوي
+ *   4. Hero — قسم الترحيب
+ *   5. Books Grid — شبكة الكتب
+ *   6. Book Card — كارت الكتاب
+ *   7. Form Pages — صفحات الفورم (Buy/Rent)
+ *   8. Payment Page — صفحة الدفع
+ *   9. Read Page — صفحة القراءة
+ *  10. Shared — عناصر مشتركة (أزرار، footer)
+ * ============================================================
+*/
+
+
+/* ============================================================
+   1. المتغيرات — نعرف ألواننا هنا مرة واحدة
+   ============================================================
+   --variable-name: value;
+   نستعملها بـ: var(--variable-name)
+   الفائدة: إذا أردنا نغير لون، نغيره في مكان واحد فقط
+*/
+:root {
+    /* الألوان الرئيسية */
+    --color-primary:   #6c63ff;   /* بنفسجي — اللون الرئيسي للموقع */
+    --color-secondary: #f7931e;   /* برتقالي — للشراء */
+    --color-rent:      #10b981;   /* أخضر — للكراء */
+    --color-read:      #3b82f6;   /* أزرق — للقراءة */
+    --color-danger:    #ef4444;   /* أحمر — للأخطاء */
+    --color-success:   #22c55e;   /* أخضر — للنجاح */
+
+    /* ألوان محايدة */
+    --color-dark:      #1e1b2e;   /* كحلي داكن */
+    --color-gray:      #6b7280;   /* رمادي */
+    --color-light-bg:  #f4f3ff;   /* خلفية فاتحة */
+    --color-white:     #ffffff;
+    --color-border:    #e5e7eb;
+
+    /* الخطوط */
+    --font-main: 'Cairo', sans-serif;
+
+    /* الظلال */
+    --shadow-sm:  0 2px 8px rgba(0,0,0,0.08);
+    --shadow-md:  0 6px 20px rgba(0,0,0,0.12);
+    --shadow-lg:  0 12px 40px rgba(0,0,0,0.18);
+
+    /* حواف دائرية */
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 22px;
+
+    /* مسافات */
+    --gap-sm: 12px;
+    --gap-md: 24px;
+    --gap-lg: 48px;
+}
+
+
+/* ============================================================
+   2. Reset — نمسح التصميم الافتراضي للمتصفح
+   ============================================================
+   كل متصفح عنده تصميم افتراضي مختلف.
+   نمسحوه ونبدأ من صفحة بيضاء.
+*/
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box; /* المقاسات تشمل الـ padding و border */
+}
+
+html {
+    scroll-behavior: smooth; /* تمرير ناعم عند الضغط على الروابط */
+}
+
+body {
+    font-family: var(--font-main);
+    background-color: var(--color-light-bg);
+    color: var(--color-dark);
+    line-height: 1.7;
+    min-height: 100vh;
+}
+
+a {
+    text-decoration: none; /* نحذف الخط تحت الروابط */
+    color: inherit;
+}
+
+img {
+    max-width: 100%; /* الصور لا تتجاوز عرض الحاوية */
+    display: block;
+}
+
+
+/* ============================================================
+   3. NAVBAR — الشريط العلوي
+   ============================================================
+   position: sticky = يبقى في أعلى الصفحة حين نتمرر
+*/
+.navbar {
+    background: var(--color-white);
+    box-shadow: var(--shadow-sm);
+    position: sticky;
+    top: 0;
+    z-index: 1000; /* فوق كل العناصر */
+
+    display: flex;
+    justify-content: space-between; /* يوزع العناصر يسار/يمين */
+    align-items: center;
+    padding: 0 40px;
+    min-height: 65px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+/* اسم الموقع في الـ Navbar */
+.nav-brand {
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--color-primary);
+    letter-spacing: -0.5px;
+}
+
+/* مجموعة الروابط */
+.nav-links {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* كل رابط في الـ Navbar */
+.nav-links a {
+    color: var(--color-gray);
+    font-weight: 600;
+    font-size: 15px;
+    padding: 7px 16px;
+    border-radius: 30px;
+    transition: all 0.25s; /* انتقال ناعم عند hover */
+}
+
+.nav-links a:hover,
+.nav-links a.active {
+    background: var(--color-primary);
+    color: var(--color-white);
+}
+
+
+/* ============================================================
+   4. HERO — قسم الترحيب في الصفحة الرئيسية
+   ============================================================
+   background: linear-gradient = خلفية متدرجة من لونين
+*/
+.hero {
+    background: linear-gradient(135deg, #6c63ff 0%, #a78bfa 50%, #f7931e 100%);
+    color: var(--color-white);
+    text-align: center;
+    padding: 80px 20px 60px;
+    clip-path: ellipse(100% 90% at 50% 0%); /* شكل دائري في الأسفل */
+    margin-bottom: 20px;
+}
+
+.hero-content h1 {
+    font-size: clamp(26px, 5vw, 46px); /* حجم مرن — يصغر على الشاشات الصغيرة */
+    font-weight: 900;
+    margin-bottom: 14px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+}
+
+.hero-content p {
+    font-size: 18px;
+    opacity: 0.92;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+
+/* ============================================================
+   5. BOOKS SECTION — قسم الكتب
+   ============================================================
+*/
+.books-section {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 0 24px 60px;
+}
+
+/* عنوان القسم */
+.section-title {
+    font-size: 26px;
+    font-weight: 900;
+    color: var(--color-dark);
+    margin-bottom: 28px;
+    padding-bottom: 12px;
+    border-bottom: 3px solid var(--color-primary);
+    display: inline-block;
+}
+
+/* رسالة لما ما كانش كتب */
+.no-books {
+    text-align: center;
+    color: var(--color-gray);
+    font-size: 18px;
+    padding: 60px;
+}
+
+/* الشبكة — تعرض الكتب في أعمدة تلقائية */
+.books-grid {
+    display: grid;
+    /*
+        auto-fill = يملأ الصف بأكبر عدد من الأعمدة ممكن
+        minmax(280px, 1fr) = كل عمود بين 280px و المساحة المتبقية
+    */
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 28px;
+}
+
+
+/* ============================================================
+   6. BOOK CARD — كارت الكتاب الواحد
+   ============================================================
+*/
+.book-card {
+    background: var(--color-white);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden; /* يخفي ما يخرج من حدود الـ card */
+
+    display: flex;
+    flex-direction: column; /* العناصر فوق بعضها */
+
+    /* انتقال ناعم عند hover */
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* حين نضع الماوس فوق الكارت */
+.book-card:hover {
+    transform: translateY(-8px); /* يرتفع للأعلى */
+    box-shadow: var(--shadow-lg);
+}
+
+/* صورة الكتاب */
+.book-cover {
+    width: 100%;
+    height: 220px;
+    object-fit: cover; /* الصورة تملأ المساحة بتناسق */
+}
+
+/* Placeholder إذا ما كانش صورة */
+.book-cover-placeholder {
+    width: 100%;
+    height: 220px;
+    background: linear-gradient(135deg, #ede9fe, #c4b5fd);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 72px;
+}
+
+/* منطقة معلومات الكتاب */
+.book-info {
+    padding: 18px;
+    flex-grow: 1; /* يشغل المساحة المتبقية */
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.book-title {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--color-dark);
+    line-height: 1.4;
+}
+
+.book-author {
+    font-size: 13px;
+    color: var(--color-gray);
+}
+
+/* تصنيف الكتاب — شارة صغيرة */
+.book-category {
+    display: inline-block;
+    background: rgba(108, 99, 255, 0.12);
+    color: var(--color-primary);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    align-self: flex-start; /* لا يمتد بالعرض كله */
+}
+
+/* الوصف القصير */
+.book-desc {
+    font-size: 13px;
+    color: var(--color-gray);
+    line-height: 1.5;
+    flex-grow: 1;
+}
+
+/* الأسعار */
+.book-prices {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 0;
+    border-top: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.price-buy {
+    color: var(--color-secondary);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.price-rent {
+    color: var(--color-rent);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+/* المخزون */
+.in-stock {
+    font-size: 12px;
+    color: var(--color-success);
+    font-weight: 700;
+}
+
+.out-stock {
+    font-size: 12px;
+    color: var(--color-danger);
+    font-weight: 700;
+}
+
+/* أزرار الكارت */
+.book-actions {
+    display: flex;
+    gap: 8px;
+    padding: 14px 18px;
+    flex-wrap: wrap;
+}
+
+
+/* ============================================================
+   7. SHARED BUTTONS — الأزرار المشتركة
+   ============================================================
+   .btn = الأساس لكل الأزرار
+*/
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px 18px;
+    border-radius: 30px;
+    font-family: var(--font-main);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: all 0.25s ease;
+    white-space: nowrap;
+}
+
+/* زر القراءة — أزرق */
+.btn-read {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: var(--color-white);
+    flex: 1;
+}
+.btn-read:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(59, 130, 246, 0.4);
+}
+
+/* زر الشراء — برتقالي */
+.btn-buy {
+    background: linear-gradient(135deg, #f7931e, #ea580c);
+    color: var(--color-white);
+    flex: 1;
+}
+.btn-buy:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(247, 147, 30, 0.4);
+}
+
+/* زر الكراء — أخضر */
+.btn-rent {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: var(--color-white);
+    flex: 1;
+}
+.btn-rent:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(16, 185, 129, 0.4);
+}
+
+/* زر معطل (نفذ المخزون) */
+.btn-disabled {
+    background: var(--color-border);
+    color: var(--color-gray);
+    cursor: not-allowed;
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 9px 18px;
+    border-radius: 30px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* زر الرجوع */
+.btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--color-gray);
+    font-weight: 600;
+    font-size: 14px;
+    padding: 8px 16px;
+    border: 2px solid var(--color-border);
+    border-radius: 30px;
+    transition: all 0.25s;
+}
+.btn-back:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+/* زر التأكيد — بنفسجي كبير */
+.btn-confirm {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, var(--color-primary), #5a52d5);
+    color: var(--color-white);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-main);
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 10px;
+}
+.btn-confirm:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(108, 99, 255, 0.4);
+}
+
+/* زر الدفع — أكبر وأبرز */
+.btn-pay {
+    width: 100%;
+    padding: 18px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: var(--color-white);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: var(--font-main);
+    font-size: 18px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 20px;
+}
+.btn-pay:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 30px rgba(16, 185, 129, 0.45);
+}
+
+
+/* ============================================================
+   8. FORM PAGES — صفحات الفورم (Buy & Rent)
+   ============================================================
+*/
+.form-page {
+    min-height: calc(100vh - 65px - 70px);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 20px;
+}
+
+/* الصندوق الأبيض الذي يحتوي الفورم */
+.form-container {
+    background: var(--color-white);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 40px;
+    width: 100%;
+    max-width: 540px;
+}
+
+/* أيقونة وعنوان الصفحة */
+.form-page-header {
+    text-align: center;
+    margin-bottom: 28px;
+}
+
+.form-icon {
+    font-size: 52px;
+    margin-bottom: 10px;
+    line-height: 1;
+}
+
+.form-page-header h1 {
+    font-size: 26px;
+    font-weight: 900;
+    color: var(--color-dark);
+}
+
+/* كارت ملخص الكتاب */
+.book-summary-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--color-light-bg);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    gap: 12px;
+}
+
+.summary-info h3 {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--color-dark);
+    margin-bottom: 4px;
+}
+
+.summary-info p {
+    font-size: 13px;
+    color: var(--color-gray);
+}
+
+/* شارة السعر */
+.price-tag {
+    font-size: 15px;
+    font-weight: 800;
+    padding: 6px 14px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+.buy-price {
+    background: rgba(247, 147, 30, 0.12);
+    color: var(--color-secondary);
+}
+
+.rent-price {
+    background: rgba(16, 185, 129, 0.12);
+    color: var(--color-rent);
+}
+
+/* صندوق الأخطاء */
+.errors-box {
+    background: #fef2f2;
+    border: 2px solid #fecaca;
+    border-radius: var(--radius-sm);
+    padding: 14px 18px;
+    margin-bottom: 20px;
+}
+
+.error-item {
+    color: var(--color-danger);
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.error-item:last-child { margin-bottom: 0; }
+
+/* حقول الفورم */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-dark);
+    margin-bottom: 8px;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 13px 16px;
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-main);
+    font-size: 15px;
+    color: var(--color-dark);
+    transition: border-color 0.25s, box-shadow 0.25s;
+    background: var(--color-white);
+}
+
+/* حين نضغط على الحقل */
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 4px rgba(108, 99, 255, 0.1);
+}
+
+/* ملخص السعر الثابت */
+.price-summary {
+    background: linear-gradient(135deg, #ede9fe, #e0f2fe);
+    border-radius: var(--radius-sm);
+    padding: 16px 20px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.price-summary span { font-size: 15px; color: var(--color-gray); }
+
+.total-amount {
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--color-primary);
+}
+
+/* حاسبة كراء */
+.rent-calculator {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+    background: none;
+}
+
+.calc-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background: var(--color-light-bg);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.calc-row:first-child {
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+.calc-row.total-row {
+    background: linear-gradient(135deg, #ede9fe, #e0f2fe);
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    border: none;
+    padding: 14px 20px;
+}
+
+.calc-row span { font-size: 14px; color: var(--color-gray); }
+.calc-row strong { font-size: 15px; color: var(--color-dark); }
+
+/* رابط الرجوع */
+.back-link {
+    display: block;
+    text-align: center;
+    margin-top: 16px;
+    color: var(--color-gray);
+    font-size: 14px;
+    font-weight: 600;
+    transition: color 0.2s;
+}
+
+.back-link:hover { color: var(--color-primary); }
+
+
+/* ============================================================
+   9. READ PAGE — صفحة القراءة
+   ============================================================
+*/
+.read-page {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 40px 24px 60px;
+}
+
+/* رأس صفحة القراءة */
+.read-header {
+    background: linear-gradient(135deg, var(--color-primary), #5a52d5);
+    color: var(--color-white);
+    border-radius: var(--radius-lg);
+    padding: 36px;
+    margin-bottom: 28px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.read-header-info { flex: 1; min-width: 200px; }
+
+.book-category-tag {
+    display: inline-block;
+    background: rgba(255,255,255,0.2);
+    color: var(--color-white);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 12px;
+}
+
+.read-title {
+    font-size: 28px;
+    font-weight: 900;
+    margin-bottom: 8px;
+    line-height: 1.3;
+}
+
+.read-author {
+    font-size: 15px;
+    opacity: 0.85;
+    margin-bottom: 10px;
+}
+
+.read-desc {
+    font-size: 14px;
+    opacity: 0.8;
+    line-height: 1.6;
+}
+
+/* أزرار الرأس */
+.read-header-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 180px;
+}
+
+.read-header-actions .btn {
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    flex: unset;
+    font-size: 14px;
+    text-align: center;
+}
+
+/* صندوق المحتوى */
+.read-content-box {
+    background: var(--color-white);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    padding: 40px;
+    margin-bottom: 28px;
+}
+
+/* نص الكتاب */
+.read-content {
+    font-size: 18px;
+    line-height: 2;
+    color: #2d2d2d;
+    text-align: justify; /* يوزع النص على عرض السطر */
+    font-weight: 400;
+}
+
+/* رسالة لما ما كانش محتوى */
+.no-content {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--color-gray);
+    font-size: 18px;
+}
+
+/* أزرار أسفل القراءة */
+.read-footer-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.read-footer-actions .btn {
+    border-radius: var(--radius-sm);
+    flex: unset;
+}
+
+
+/* ============================================================
+   10. PAYMENT PAGE — صفحة الدفع
+   ============================================================
+*/
+.payment-page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+}
+
+/* شريط التقدم */
+.progress-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.step-circle {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: var(--color-border);
+    color: var(--color-gray);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 800;
+    transition: all 0.3s;
+}
+
+.step.done .step-circle {
+    background: var(--color-success);
+    color: white;
+}
+
+.step.active .step-circle {
+    background: var(--color-primary);
+    color: white;
+    box-shadow: 0 0 0 6px rgba(108, 99, 255, 0.2);
+}
+
+.step span {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--color-gray);
+}
+
+.step.done span, .step.active span { color: var(--color-primary); }
+
+/* الخط بين الخطوات */
+.step-line {
+    width: 60px;
+    height: 3px;
+    background: var(--color-border);
+    border-radius: 2px;
+    margin-bottom: 20px;
+}
+
+.step-line.done { background: var(--color-success); }
+
+/* تخطيط صفحة الدفع — عمودان */
+.payment-layout {
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap: 28px;
+    align-items: flex-start;
+}
+
+/* ملخص الطلب */
+.order-summary {
+    background: var(--color-white);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: 30px;
+    position: sticky;
+    top: 85px; /* يبقى ثابتاً حين نتمرر */
+}
+
+.order-summary h2 {
+    font-size: 18px;
+    font-weight: 900;
+    margin-bottom: 20px;
+    color: var(--color-dark);
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--color-border);
+}
+
+.summary-badge {
+    display: inline-block;
+    background: rgba(108, 99, 255, 0.1);
+    color: var(--color-primary);
+    font-size: 13px;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 20px;
+    margin-bottom: 18px;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--color-border);
+    font-size: 14px;
+}
+
+.summary-row span { color: var(--color-gray); flex-shrink: 0; }
+.summary-row strong { color: var(--color-dark); text-align: left; word-break: break-word; }
+
+.summary-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(135deg, #ede9fe, #e0f2fe);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    margin-top: 16px;
+    font-size: 15px;
+}
+
+.total-big {
+    font-size: 24px;
+    font-weight: 900;
+    color: var(--color-primary);
+}
+
+/* خيارات الدفع */
+.payment-options {
+    background: var(--color-white);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: 30px;
+}
+
+.payment-options h2 {
+    font-size: 18px;
+    font-weight: 900;
+    margin-bottom: 20px;
+    color: var(--color-dark);
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--color-border);
+}
+
+/* قائمة طرق الدفع */
+.payment-methods {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+/* طريقة دفع واحدة */
+.payment-method {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 20px;
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.25s;
+}
+
+.payment-method:hover {
+    border-color: var(--color-primary);
+    background: var(--color-light-bg);
+}
+
+/* الطريقة المختارة */
+.payment-method.active {
+    border-color: var(--color-primary);
+    background: rgba(108, 99, 255, 0.06);
+}
+
+.method-icon { font-size: 28px; }
+
+.method-info { flex: 1; }
+.method-info strong { display: block; font-size: 15px; color: var(--color-dark); }
+.method-info small  { font-size: 12px; color: var(--color-gray); }
+
+.method-check {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 800;
+    color: transparent;
+    transition: all 0.25s;
+}
+
+.payment-method.active .method-check {
+    background: var(--color-primary);
+    color: white;
+}
+
+/* حقول البطاقة */
+.card-fields {
+    background: var(--color-light-bg);
+    border-radius: var(--radius-sm);
+    padding: 20px;
+    margin-bottom: 12px;
+    border: 2px solid var(--color-border);
+}
+
+.card-row-two {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+/* شعارات الأمان */
+.security-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 14px;
+}
+
+.badge {
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-gray);
+}
+
+/* صندوق معلومات */
+.info-box {
+    background: var(--color-light-bg);
+    border: 2px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 20px;
+    margin-bottom: 12px;
+}
+
+.info-box p {
+    font-size: 14px;
+    color: var(--color-dark);
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.info-box .note { color: var(--color-danger); }
+
+/* ============================================================
+   Overlay النجاح
+   ============================================================
+   position: fixed = يغطي الشاشة كاملاً بغض النظر عن التمرير
+*/
+.success-overlay {
+    position: fixed;
+    inset: 0; /* top:0, right:0, bottom:0, left:0 */
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px); /* ضبابية خلف الـ overlay */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 20px;
+}
+
+.success-box {
+    background: var(--color-white);
+    border-radius: var(--radius-lg);
+    padding: 50px 40px;
+    text-align: center;
+    max-width: 480px;
+    width: 100%;
+    box-shadow: var(--shadow-lg);
+    animation: popIn 0.4s ease; /* أنيميشن ظهور */
+}
+
+/* أنيميشن ظهور الـ success box */
+@keyframes popIn {
+    from {
+        transform: scale(0.7);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.success-icon {
+    font-size: 80px;
+    margin-bottom: 16px;
+    animation: bounce 0.6s ease 0.3s both; /* يرتد للأعلى */
+}
+
+@keyframes bounce {
+    0%   { transform: scale(0); }
+    60%  { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.success-box h2 {
+    font-size: 28px;
+    font-weight: 900;
+    color: var(--color-success);
+    margin-bottom: 14px;
+}
+
+.success-box p {
+    font-size: 15px;
+    color: var(--color-gray);
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+.success-amount {
+    font-size: 20px;
+    color: var(--color-dark);
+    font-weight: 800;
+    margin: 12px 0;
+}
+
+.success-note {
+    font-size: 14px;
+    background: var(--color-light-bg);
+    padding: 10px 16px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 24px;
+}
+
+.success-actions {
+    margin-top: 24px;
+}
+
+.success-actions .btn-confirm {
+    width: auto;
+    padding: 14px 32px;
+    border-radius: 30px;
+    font-size: 15px;
+    display: inline-flex;
+}
+
+
+/* ============================================================
+   11. FOOTER — أسفل الصفحة
+   ============================================================
+*/
+.footer {
+    background: var(--color-dark);
+    color: rgba(255,255,255,0.7);
+    text-align: center;
+    padding: 28px 20px;
+    font-size: 14px;
+}
+
+
+/* ============================================================
+   12. RESPONSIVE — تصميم للشاشات الصغيرة (الهاتف)
+   ============================================================
+   @media = نقول: إذا عرض الشاشة أصغر من X، طبق هذه الأنماط
+*/
+@media (max-width: 768px) {
+
+    /* الـ Navbar */
+    .navbar {
+        padding: 12px 20px;
+    }
+
+    /* بطولة صغيرة */
+    .hero {
+        padding: 50px 20px 40px;
+        clip-path: none;
+    }
+
+    /* كتاب واحد في الصف */
+    .books-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* فورم بعرض كامل */
+    .form-container {
+        padding: 24px 20px;
+    }
+
+    /* صفحة الدفع — عمود واحد */
+    .payment-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .order-summary {
+        position: static; /* لا يبقى ثابتاً على الهاتف */
+    }
+
+    /* رأس القراءة */
+    .read-header {
+        flex-direction: column;
+    }
+
+    .read-header-actions {
+        flex-direction: row;
+        width: 100%;
+    }
+
+    .read-content-box {
+        padding: 24px 20px;
+    }
+
+    .read-content {
+        font-size: 16px;
+    }
+
+    /* حقول البطاقة */
+    .card-row-two {
+        grid-template-columns: 1fr;
+    }
+
+    /* شريط التقدم */
+    .step-line {
+        width: 30px;
+    }
+}
