@@ -2,12 +2,72 @@
 session_start();
 require_once 'db.php';
 
+// ============================================
+// Helper Functions (used by register.php, etc.)
+// ============================================
+
+function isLoggedIn() {
+    return isset($_SESSION['user_id']);
+}
+
+function redirect($url) {
+    header("Location: " . $url);
+    exit();
+}
+
+function sanitize($input) {
+    return trim(strip_tags($input));
+}
+
+function generateCsrfToken() {
+    if (empty($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function verifyCsrfToken($token) {
+    return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
+}
+
+function setFlash($type, $message) {
+    $_SESSION['flash_' . $type] = $message;
+}
+
+function getFlash($type) {
+    $message = $_SESSION['flash_' . $type] ?? null;
+    unset($_SESSION['flash_' . $type]);
+    return $message;
+}
+
+function getUserByEmail($email) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
+    $stmt->execute([$email]);
+    return $stmt->fetch();
+}
+
+function createUser($data) {
+    global $pdo;
+    $hashed = password_hash($data['password'], PASSWORD_DEFAULT);
+    $stmt = $pdo->prepare("INSERT INTO users (full_name, email, password, role) VALUES (?, ?, ?, 'user')");
+    return $stmt->execute([$data['name'], $data['email'], $hashed]);
+}
+
+// ============================================
+// Action Handler
+// Only runs when functions.php is the direct target (POST form submission)
+// ============================================
+
+if (basename($_SERVER['SCRIPT_FILENAME']) !== 'functions.php') {
+    return; // دكشي فيل require_once — وقف هنا ولا تعمل redirect
+}
+
 if ($_SERVER["REQUEST_METHOD"] !== 'POST') {
     header("Location: ../views/register.php");
     exit();
 }
 
-// نأخذ action من الفورم
 $action = $_POST['action'] ?? '';
 
 // ============================================
@@ -113,7 +173,7 @@ if ($action === 'buy') {
         $stmt->execute([$book_id]);
         $book = $stmt->fetch();
 
-        if (!$book)                      $errors[] = "Book not found";
+        if (!$book)                           $errors[] = "Book not found";
         if ($book && $quantity > $book['stock']) $errors[] = "Not enough stock";
     }
 

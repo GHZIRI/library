@@ -3,16 +3,15 @@ session_start();
 require_once '../core/db.php';
 
 if(!isset($_SESSION['user_id'])){
-    header("locatin: login.php");
+    header("Location: login.php"); // Fix: "locatin" → "Location"
     exit();
 }
-$user_id = $_SESSION('user_id');
 
+$user_id = $_SESSION['user_id']; // Fix: $_SESSION('user_id') → $_SESSION['user_id'] (Fatal Error)
 
 $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
 $stmt->execute([$user_id]);
 $user = $stmt->fetch();
-
 
 $stmt = $pdo->prepare("
     SELECT purchases.*, books.title, books.author, books.cover_image
@@ -22,7 +21,7 @@ $stmt = $pdo->prepare("
     ORDER BY purchases.purchased_at DESC
 ");
 $stmt->execute([$user_id]);
-$purchases  = $stmt->fetchAll();
+$purchases = $stmt->fetchAll();
 
 $stmt = $pdo->prepare("
     SELECT rentals.*, books.title, books.author, books.cover_image
@@ -35,41 +34,40 @@ $stmt->execute([$user_id]);
 $rentals = $stmt->fetchAll();
 ?>
 
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>My Dashboard - Library</title>
+    <link rel="stylesheet" href="../assets/css/style.css"> <!-- Fix: CSS was missing -->
 </head>
 <body>
-        <nav class="navbar">
-            <h1>Libriry</h1>
-            <div class="nav-links">
-                 <a href="catalogue.php">Catalogue</a>
-                 <a href="user_dashboard.php">My Account</a>
-                 <a href="../core/logout.php">Logout</a>
-            </div>
-        </nav>
-
-        <div class="stast-grid">
-            <div class="stat-cart">
-                <h3><?php count($purchases) ?></h3>
-                <p>Total Purchases</p>
-            </div>
-            <div class="stat-card">
-                <h3><?php count($rentals) ?></h3>
-                <p>Total Rentals</p>
-            </div>
+    <nav class="navbar">
+        <h1>📚 Library</h1>
+        <div class="nav-links">
+            <a href="catalogue.php">Catalogue</a>
+            <a href="user_dashboard.php">My Account</a>
+            <a href="../core/logout.php">Logout</a>
         </div>
+    </nav>
 
-       <div class="section">
-        <h2> My Purchases</h2>
+    <div class="stast-grid">
+        <div class="stat-card">
+            <h3><?= count($purchases) ?></h3> <!-- Fix: missing echo -->
+            <p>Total Purchases</p>
+        </div>
+        <div class="stat-card">
+            <h3><?= count($rentals) ?></h3> <!-- Fix: missing echo -->
+            <p>Total Rentals</p>
+        </div>
+    </div>
 
-        <?php if (empty($purchases)) { ?>
+    <div class="section">
+        <h2>My Purchases</h2>
+        <?php if(empty($purchases)): ?>
             <p>No purchases yet. <a href="catalogue.php">Browse books</a></p>
-        <?php } else { ?>
+        <?php else: ?>
             <table class="data-table">
                 <thead>
                     <tr>
@@ -81,7 +79,7 @@ $rentals = $stmt->fetchAll();
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($purchases as $purchase) { ?>
+                    <?php foreach($purchases as $purchase): ?>
                         <tr>
                             <td><?= htmlspecialchars($purchase['title']) ?></td>
                             <td><?= htmlspecialchars($purchase['author']) ?></td>
@@ -89,19 +87,17 @@ $rentals = $stmt->fetchAll();
                             <td><?= $purchase['total_price'] ?> MAD</td>
                             <td><?= date('d/m/Y', strtotime($purchase['purchased_at'])) ?></td>
                         </tr>
-                    <?php } ?>
+                    <?php endforeach; ?>
                 </tbody>
             </table>
-        <?php } ?>
+        <?php endif; ?>
     </div>
 
-   
     <div class="section">
         <h2>My Rentals</h2>
-
-        <?php if (empty($rentals)) { ?>
+        <?php if(empty($rentals)): ?>
             <p>No rentals yet. <a href="catalogue.php">Browse books</a></p>
-        <?php } else { ?>
+        <?php else: ?>
             <table class="data-table">
                 <thead>
                     <tr>
@@ -114,7 +110,7 @@ $rentals = $stmt->fetchAll();
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($rentals as $rental) { ?>
+                    <?php foreach($rentals as $rental): ?>
                         <tr>
                             <td><?= htmlspecialchars($rental['title']) ?></td>
                             <td><?= htmlspecialchars($rental['author']) ?></td>
@@ -122,22 +118,18 @@ $rentals = $stmt->fetchAll();
                             <td><?= date('d/m/Y', strtotime($rental['rent_until'])) ?></td>
                             <td><?= $rental['total_price'] ?> MAD</td>
                             <td>
-                                <?php
-                                if ($rental['status'] === 'active') {
-                                    echo "<span class='status-active'> Active</span>";
-                                } else {
-                                    echo "<span class='status-returned'> Returned</span>";
-                                }
-                                ?>
+                                <?php if($rental['status'] === 'active'): ?>
+                                    <span class="status-active">Active</span>
+                                <?php else: ?>
+                                    <span class="status-returned">Returned</span>
+                                <?php endif; ?>
                             </td>
                         </tr>
-                    <?php } ?>
+                    <?php endforeach; ?>
                 </tbody>
             </table>
-        <?php } ?>
+        <?php endif; ?>
     </div>
-
-</div>
 
 </body>
 </html>
