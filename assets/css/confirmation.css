@@ -1,0 +1,53 @@
+.confirmation-container {
+    max-width: 700px;
+    margin: 60px auto;
+    padding: 0 20px;
+    text-align: center;
+}
+
+.confirmation-card {
+    background: var(--color-white);
+    padding: 50px 30px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+}
+
+.success-icon {
+    font-size: 72px;
+    margin-bottom: 24px;
+    color: var(--color-success);
+}
+
+.confirmation-card h2 {
+    font-size: 32px;
+    font-weight: 900;
+    margin-bottom: 12px;
+}
+
+.confirmation-card p {
+    color: var(--color-gray);
+    margin-bottom: 30px;
+}
+
+.order-details {
+    background: var(--color-light-bg);
+    padding: 24px;
+    border-radius: var(--radius-md);
+    margin-bottom: 30px;
+    text-align: right;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.detail-row:last-child { border: none; }
+
+.btn-group {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}

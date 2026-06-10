@@ -145,7 +145,7 @@ if ($action === 'login') {
         if ($user['role'] === 'admin') {
             header("Location: ../admin/dashboard.php");
         } else {
-            header("Location: ../views/catalogue.php");
+            header("Location: ../index.php");
         }
         exit();
     }

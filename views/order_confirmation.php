@@ -10,18 +10,7 @@ if (!$typ || !$id) {
     exit();
 }
 
-// للـ rent نحتاج login، للـ buy لا نحتاج
-if ($typ === 'rent' && !isset($_SESSION['user_id'])) {
-    header("Location: login.php");
-    exit();
-}
 if ($typ === 'buy') {
-    if (($_SESSION['last_purchase_id'] ?? null) != $id) {
-        header("Location: catalogue.php");
-        exit();
-    }
-
-    // للـ buy لا نشترط user_id — نجلب الطلب بـ ID فقط
     $stmt = $pdo->prepare("
         SELECT purchases.*, books.title, books.author
         FROM purchases
@@ -30,106 +19,86 @@ if ($typ === 'buy') {
     ");
     $stmt->execute([$id]);
     $order = $stmt->fetch();
-}
-
-if($typ === 'rent'){
+} else {
     $stmt = $pdo->prepare("
         SELECT rentals.*, books.title, books.author
         FROM rentals
         JOIN books ON rentals.book_id = books.id
         WHERE rentals.id = ?
-        AND rentals.user_id = ?
     ");
-    $stmt->execute([$id, $_SESSION['user_id']]); // Fix: was execute([$_SESSION['user_id']]) missing $id
+    $stmt->execute([$id]);
     $order = $stmt->fetch();
 }
 
-if(!isset($order) || !$order){
-    header("Location: catalogue.php"); // Fix: "catalohue.php" → "catalogue.php"
+if(!$order){
+    header("Location: catalogue.php");
     exit();
 }
 ?>
-
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Order Confirmation - Library</title>
-    <link rel="stylesheet" href="../assets/css/style.css"> <!-- Fix: CSS was missing -->
+    <title>تأكيد الطلب — مكتبة الأندلس</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/shared.css">
+    <link rel="stylesheet" href="../assets/css/confirmation.css">
 </head>
 <body>
-    <nav class="navbar">
-        <h1>📚 Library</h1>
-        <div class="nav-links">
-            <a href="catalogue.php">Catalogue</a>
-            <?php if(isset($_SESSION['user_id'])): ?>
-                <a href="user_dashboard.php">My Account</a>
-                <a href="../core/logout.php">Logout</a>
+
+<nav class="navbar">
+    <div class="nav-brand">📚 مكتبة الأندلس</div>
+    <div class="nav-links">
+        <a href="../index.php">الرئيسية</a>
+    </div>
+</nav>
+
+<div class="confirmation-container">
+    <div class="confirmation-card">
+        <div class="success-icon">✅</div>
+        <h2>تم تأكيد طلبك بنجاح!</h2>
+        <p>شكراً لك على اختيارك مكتبة الأندلس. إليك تفاصيل طلبك:</p>
+
+        <div class="order-details">
+            <div class="detail-row">
+                <span>اسم الكتاب:</span>
+                <strong><?= htmlspecialchars($order['title']) ?></strong>
+            </div>
+            <div class="detail-row">
+                <span>نوع الطلب:</span>
+                <strong><?= $typ === 'buy' ? 'شراء' : 'كراء' ?></strong>
+            </div>
+            <?php if ($typ === 'buy'): ?>
+                <div class="detail-row">
+                    <span>الكمية:</span>
+                    <strong><?= $order['quantity'] ?></strong>
+                </div>
             <?php else: ?>
-                <a href="login.php">Login</a>
-                <a href="register.php">Register</a>
+                <div class="detail-row">
+                    <span>المدة:</span>
+                    <strong>من <?= date('d/m/Y', strtotime($order['rent_from'])) ?> إلى <?= date('d/m/Y', strtotime($order['rent_until'])) ?></strong>
+                </div>
             <?php endif; ?>
-        </div>
-    </nav>
-
-    <div class="cornfirmation">
-        <div class="confirmation-box">
-            <h2>✅ Order Confirmed!</h2>
-            <p>Thank you for your order.</p>
+            <div class="detail-row">
+                <span>المبلغ الإجمالي:</span>
+                <strong style="color: var(--color-primary);"><?= number_format($order['total_price'], 2) ?> درهم</strong>
+            </div>
         </div>
 
-        <div class="detail-row">
-            <span>Book:</span>
-            <strong><?= htmlspecialchars($order['title']) ?></strong> <!-- Fix: missing echo -->
-        </div>
-
-        <div class="detail-row">
-            <span>Author:</span>
-            <strong><?= htmlspecialchars($order['author']) ?></strong> <!-- Fix: missing echo -->
-        </div>
-
-        <?php if($typ === 'buy'): ?>
-            <div class="detail-row">
-                <span>Quantity:</span>
-                <strong><?= $order['quantity'] ?></strong>
-            </div>
-            <div class="detail-row">
-                <span>Total Price:</span>
-                <strong><?= $order['total_price'] ?> MAD</strong>
-            </div>
-            <div class="detail-row">
-                <span>Date:</span>
-                <strong><?= date('d/m/Y', strtotime($order['purchased_at'])) ?></strong>
-            </div>
-        <?php endif; ?>
-
-        <?php if($typ === 'rent'): ?> <!-- Fix: $type → $typ (undefined variable) -->
-            <div class="detail-row">
-                <span>From:</span>
-                <strong><?= date('d/m/Y', strtotime($order['rent_from'])) ?></strong> <!-- Fix: missing echo -->
-            </div>
-            <div class="detail-row">
-                <span>Until:</span>
-                <strong><?= date('d/m/Y', strtotime($order['rent_until'])) ?></strong> <!-- Fix: missing echo -->
-            </div>
-            <div class="detail-row">
-                <span>Total Price:</span>
-                <strong><?= $order['total_price'] ?> MAD</strong> <!-- Fix: missing echo -->
-            </div>
-            <div class="detail-row">
-                <span>Status:</span>
-                <strong class="status-active">Active</strong>
-            </div>
-        <?php endif; ?>
-
-        <div class="confirmation-actions">
-            <a href="catalogue.php" class="btn-primary">Continue Shopping</a>
+        <div class="btn-group">
+            <a href="catalogue.php" class="btn btn-primary">العودة للمتجر</a>
             <?php if(isset($_SESSION['user_id'])): ?>
-                <a href="user_dashboard.php" class="btn-secondary">My Account</a>
+                <a href="user_dashboard.php" class="btn" style="background: var(--color-light-bg);">لوحة التحكم</a>
             <?php endif; ?>
         </div>
     </div>
+</div>
+
+<footer class="footer">
+    <p>📚 جميع الحقوق محفوظة لمكتبة الأندلس © <?= date('Y') ?></p>
+</footer>
 
 </body>
 </html>

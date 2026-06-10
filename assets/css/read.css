@@ -1,0 +1,30 @@
+.read-container {
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.read-header {
+    background: var(--color-white);
+    padding: 30px;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    border-bottom: 3px solid var(--color-primary);
+    text-align: center;
+}
+
+.read-content {
+    background: var(--color-white);
+    padding: 60px 40px;
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+    box-shadow: var(--shadow-md);
+    line-height: 2.5;
+    font-size: 18px;
+    color: #374151;
+    text-align: justify;
+    white-space: pre-wrap;
+}
+
+.read-content h2, .read-content h3 {
+    color: var(--color-primary);
+    margin: 40px 0 20px;
+}

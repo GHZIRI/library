@@ -3,18 +3,18 @@ session_start();
 require_once '../core/db.php';
 
 if(!isset($_SESSION['user_id'])){
-    header("Location: login.php"); // Fix: "locatin" → "Location"
+    header("Location: login.php");
     exit();
 }
 
-$user_id = $_SESSION['user_id']; // Fix: $_SESSION('user_id') → $_SESSION['user_id'] (Fatal Error)
+$user_id = $_SESSION['user_id'];
 
 $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
 $stmt->execute([$user_id]);
 $user = $stmt->fetch();
 
 $stmt = $pdo->prepare("
-    SELECT purchases.*, books.title, books.author, books.cover_image
+    SELECT purchases.*, books.title, books.author
     FROM purchases
     JOIN books ON purchases.book_id = books.id
     WHERE purchases.user_id = ?
@@ -24,7 +24,7 @@ $stmt->execute([$user_id]);
 $purchases = $stmt->fetchAll();
 
 $stmt = $pdo->prepare("
-    SELECT rentals.*, books.title, books.author, books.cover_image
+    SELECT rentals.*, books.title, books.author, books.id as book_id
     FROM rentals
     JOIN books ON rentals.book_id = books.id
     WHERE rentals.user_id = ?
@@ -33,110 +33,81 @@ $stmt = $pdo->prepare("
 $stmt->execute([$user_id]);
 $rentals = $stmt->fetchAll();
 ?>
-
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Dashboard - Library</title>
-    <link rel="stylesheet" href="../assets/css/style.css"> <!-- Fix: CSS was missing -->
+    <title>حسابي — مكتبة الأندلس</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/shared.css">
+    <link rel="stylesheet" href="../assets/css/dashboard.css">
 </head>
 <body>
-    <nav class="navbar">
-        <h1>📚 Library</h1>
-        <div class="nav-links">
-            <a href="catalogue.php">Catalogue</a>
-            <a href="user_dashboard.php">My Account</a>
-            <a href="../core/logout.php">Logout</a>
-        </div>
-    </nav>
 
-    <div class="stast-grid">
+<nav class="navbar">
+    <div class="nav-brand">📚 مكتبة الأندلس</div>
+    <div class="nav-links">
+        <a href="../index.php">الرئيسية</a>
+        <a href="../index.php">الكتالوج</a>
+        <a href="../core/logout.php">تسجيل الخروج</a>
+    </div>
+</nav>
+
+<div class="dashboard-container">
+    <div class="welcome-section">
+        <h2>مرحباً، <?= htmlspecialchars($user['full_name']) ?> 👋</h2>
+        <p>هنا تجد سجل مشترياتك وكتبك المستعارة</p>
+    </div>
+
+    <div class="stats-grid">
         <div class="stat-card">
-            <h3><?= count($purchases) ?></h3> <!-- Fix: missing echo -->
-            <p>Total Purchases</p>
+            <h3><?= count($purchases) ?></h3>
+            <p>مشتريات</p>
         </div>
         <div class="stat-card">
-            <h3><?= count($rentals) ?></h3> <!-- Fix: missing echo -->
-            <p>Total Rentals</p>
+            <h3><?= count($rentals) ?></h3>
+            <p>كتب مستعارة</p>
         </div>
     </div>
 
-    <div class="section">
-        <h2>My Purchases</h2>
-        <?php if(empty($purchases)): ?>
-            <p>No purchases yet. <a href="catalogue.php">Browse books</a></p>
-        <?php else: ?>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Book</th>
-                        <th>Author</th>
-                        <th>Quantity</th>
-                        <th>Total</th>
-                        <th>Date</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach($purchases as $purchase): ?>
-                        <tr>
-                            <td><?= htmlspecialchars($purchase['title']) ?></td>
-                            <td><?= htmlspecialchars($purchase['author']) ?></td>
-                            <td><?= $purchase['quantity'] ?></td>
-                            <td><?= $purchase['total_price'] ?> MAD</td>
-                            <td><?= date('d/m/Y', strtotime($purchase['purchased_at'])) ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        <?php endif; ?>
-    </div>
-
-    <div class="section">
-        <h2>My Rentals</h2>
+    <div class="history-section">
+        <h3>📚 كتبي المستعارة</h3>
         <?php if(empty($rentals)): ?>
-            <p>No rentals yet. <a href="catalogue.php">Browse books</a></p>
+            <p>لا توجد اشتراكات حالياً. <a href="../index.php">تصفح الكتالوج</a></p>
         <?php else: ?>
             <table class="data-table">
                 <thead>
                     <tr>
                         <th>الكتاب</th>
-                        <th>المؤلف</th>
-                        <th>من</th>
-                        <th>حتى</th>
-                        <th>الإجمالي</th>
+                        <th>من تاريخ</th>
+                        <th>إلى تاريخ</th>
                         <th>الحالة</th>
-                        <th>قراءة</th>
+                        <th>الإجراء</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach($rentals as $rental): ?>
-                        <?php
-                            $is_active_rental = $rental['paid'] == 1
-                                && $rental['status'] === 'active'
-                                && $rental['rent_until'] >= date('Y-m-d');
+                        <?php 
+                            $is_active = $rental['paid'] == 1 && $rental['rent_until'] >= date('Y-m-d');
                         ?>
                         <tr>
-                            <td><?= htmlspecialchars($rental['title']) ?></td>
-                            <td><?= htmlspecialchars($rental['author']) ?></td>
+                            <td><strong><?= htmlspecialchars($rental['title']) ?></strong></td>
                             <td><?= date('d/m/Y', strtotime($rental['rent_from'])) ?></td>
                             <td><?= date('d/m/Y', strtotime($rental['rent_until'])) ?></td>
-                            <td><?= $rental['total_price'] ?> MAD</td>
                             <td>
-                                <?php if($is_active_rental): ?>
-                                    <span class="status-active">Active</span>
-                                <?php elseif($rental['rent_until'] < date('Y-m-d')): ?>
-                                    <span class="status-returned">Expired</span>
+                                <?php if($is_active): ?>
+                                    <span class="status-badge status-active">سارٍ</span>
                                 <?php else: ?>
-                                    <span class="status-returned">Returned</span>
+                                    <span class="status-badge status-expired">منتهٍ</span>
                                 <?php endif; ?>
                             </td>
                             <td>
-                                <?php if($is_active_rental): ?>
-                                    <a href="read_book.php?id=<?= $rental['book_id'] ?>" style="color: #2e7d32; font-weight: 600;">📖 اقرأ</a>
+                                <?php if($is_active): ?>
+                                    <a href="read_book.php?id=<?= $rental['book_id'] ?>" class="btn-read-small">📖 قراءة</a>
                                 <?php else: ?>
-                                    <span style="color: #999; font-size: 13px;">غير مدفوع</span>
+                                    <a href="rent.php?id=<?= $rental['book_id'] ?>" style="color: var(--color-primary); font-size: 13px;">تجديد</a>
                                 <?php endif; ?>
                             </td>
                         </tr>
@@ -145,6 +116,39 @@ $rentals = $stmt->fetchAll();
             </table>
         <?php endif; ?>
     </div>
+
+    <div class="history-section">
+        <h3>🛍️ سجل المشتريات</h3>
+        <?php if(empty($purchases)): ?>
+            <p>لا توجد مشتريات سابقة.</p>
+        <?php else: ?>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>الكتاب</th>
+                        <th>الكمية</th>
+                        <th>الإجمالي</th>
+                        <th>التاريخ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach($purchases as $p): ?>
+                        <tr>
+                            <td><?= htmlspecialchars($p['title']) ?></td>
+                            <td><?= $p['quantity'] ?></td>
+                            <td><?= number_format($p['total_price'], 2) ?> درهم</td>
+                            <td><?= date('d/m/Y', strtotime($p['purchased_at'])) ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php endif; ?>
+    </div>
+</div>
+
+<footer class="footer">
+    <p>📚 جميع الحقوق محفوظة لمكتبة الأندلس © <?= date('Y') ?></p>
+</footer>
 
 </body>
 </html>

@@ -1,0 +1,116 @@
+:root {
+    --color-primary:   #6c63ff;
+    --color-secondary: #f7931e;
+    --color-rent:      #10b981;
+    --color-read:      #3b82f6;
+    --color-danger:    #ef4444;
+    --color-success:   #22c55e;
+    --color-dark:      #1e1b2e;
+    --color-gray:      #6b7280;
+    --color-light-bg:  #f4f3ff;
+    --color-white:     #ffffff;
+    --color-border:    #e5e7eb;
+    --font-main: 'Cairo', sans-serif;
+    --shadow-sm:  0 2px 8px rgba(0,0,0,0.08);
+    --shadow-md:  0 6px 20px rgba(0,0,0,0.12);
+    --shadow-lg:  0 12px 40px rgba(0,0,0,0.18);
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 22px;
+}
+
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: var(--font-main);
+    background-color: var(--color-light-bg);
+    color: var(--color-dark);
+    line-height: 1.7;
+    min-height: 100vh;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+img {
+    max-width: 100%;
+    display: block;
+}
+
+.navbar {
+    background: var(--color-white);
+    box-shadow: var(--shadow-sm);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 40px;
+    min-height: 65px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.nav-brand {
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--color-primary);
+}
+
+.nav-links {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.nav-links a {
+    color: var(--color-gray);
+    font-weight: 600;
+    font-size: 15px;
+    padding: 7px 16px;
+    border-radius: 30px;
+    transition: all 0.25s;
+}
+
+.nav-links a:hover, .nav-links a.active {
+    background: var(--color-primary);
+    color: var(--color-white);
+}
+
+.footer {
+    background-color: var(--color-dark);
+    color: var(--color-white);
+    text-align: center;
+    padding: 28px 20px;
+    margin-top: 60px;
+    font-size: 14px;
+}
+
+/* Shared Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px 18px;
+    border-radius: 30px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: all 0.25s ease;
+}
+
+.btn-primary { background: var(--color-primary); color: #fff; }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
