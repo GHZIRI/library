@@ -2,11 +2,7 @@
 session_start();
 require_once '../core/db.php';
 
-if(!isset($_SESSION['user_id'])){
-    header("Location: login.php");
-    exit();
-}
-
+// لا نشترط Login — أي شخص يقدر يشوف الكتب ويشتري
 $stmt = $pdo->prepare("SELECT * FROM books ORDER BY created_at DESC");
 $stmt->execute();
 $books = $stmt->fetchAll();
@@ -25,8 +21,13 @@ $books = $stmt->fetchAll();
         <h1>📚 Library</h1>
         <div class="nav-links">
             <a href="catalogue.php">Catalogue</a>
-            <a href="user_dashboard.php">My Account</a>
-            <a href="../core/logout.php">Logout</a>
+            <?php if(isset($_SESSION['user_id'])): ?>
+                <a href="user_dashboard.php">My Account</a>
+                <a href="../core/logout.php">Logout</a>
+            <?php else: ?>
+                <a href="login.php">Login</a>
+                <a href="register.php">Register</a>
+            <?php endif; ?>
         </div>
     </nav>
 
@@ -67,8 +68,19 @@ $books = $stmt->fetchAll();
                     <?php endif; ?>
 
                     <div class="book-action">
-                        <a href="buy.php?id=<?= $book['id'] ?>" class="btn-buy">Buy</a>
-                        <a href="rent.php?id=<?= $book['id'] ?>" class="btn-rent">Rent</a>
+                        <a href="buy.php?id=<?= $book['id'] ?>" class="btn-buy">شراء</a>
+                        <?php if (isset($_SESSION['user_id'])): ?>
+                            <a href="rent.php?id=<?= $book['id'] ?>" class="btn-rent">كراء</a>
+                            <a href="read_book.php?id=<?= $book['id'] ?>"
+                               style="padding: 8px 12px; background: #e8f5e9; color: #2e7d32; border-radius: 6px; font-weight: 600; font-size: 13px;">
+                                📖 قراءة
+                            </a>
+                        <?php else: ?>
+                            <a href="login.php"
+                               style="padding: 8px 12px; background: #f3f4f6; color: #6b7280; border-radius: 6px; font-weight: 600; font-size: 13px;">
+                                🔒 كراء / قراءة
+                            </a>
+                        <?php endif; ?>
                     </div>
                 </div>
             <?php endforeach; ?>

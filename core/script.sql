@@ -26,12 +26,14 @@ CREATE TABLE IF NOT EXISTS books (
 
 CREATE TABLE IF NOT EXISTS purchases (
     id           INT AUTO_INCREMENT PRIMARY KEY,
-    user_id      INT           NOT NULL,
+    user_id      INT           DEFAULT NULL,        -- Can be NULL (buyer without account)
     book_id      INT           NOT NULL,
     quantity     INT           DEFAULT 1,
     total_price  DECIMAL(10,2) NOT NULL,
+    full_name    VARCHAR(100)  DEFAULT NULL,         -- اسم المشتري
+    phone        VARCHAR(20)   DEFAULT NULL,         -- هاتف المشتري
+    city         VARCHAR(100)  DEFAULT NULL,         -- مدينة المشتري
     purchased_at TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE
 );
 
@@ -39,9 +41,13 @@ CREATE TABLE IF NOT EXISTS rentals (
     id          INT AUTO_INCREMENT PRIMARY KEY,
     user_id     INT           NOT NULL,
     book_id     INT           NOT NULL,
+    full_name   VARCHAR(100)  DEFAULT NULL,          -- Tenant/Renter name
+    email       VARCHAR(150)  DEFAULT NULL,          -- Tenant/Renter email
+    phone       VARCHAR(20)   DEFAULT NULL,          -- Tenant/Renter phone
     rent_from   DATE          NOT NULL,
     rent_until  DATE          NOT NULL,
     total_price DECIMAL(10,2) NOT NULL,
+    paid        TINYINT(1)    DEFAULT 0,             -- 1 = Paid, 0 = Not Paid
     status      ENUM('active','returned') DEFAULT 'active',
     created_at  TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,

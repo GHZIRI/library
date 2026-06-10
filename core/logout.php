@@ -3,6 +3,9 @@
 
 require_once 'functions.php';
 
+$redirectUrl = ($_SESSION['user_role'] ?? '') === 'admin'
+    ? '../admin/login.php'
+    : '../views/login.php';
 
 session_destroy();
 
@@ -10,5 +13,5 @@ session_destroy();
 $_SESSION = [];
 
 
-header('Location: ../admin/login.php');
+header('Location: ' . $redirectUrl);
 exit;

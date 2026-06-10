@@ -1,5 +1,7 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require_once 'db.php';
 
 // ============================================
@@ -60,7 +62,7 @@ function createUser($data) {
 // ============================================
 
 if (basename($_SERVER['SCRIPT_FILENAME']) !== 'functions.php') {
-    return; // دكشي فيل require_once — وقف هنا ولا تعمل redirect
+    return; // Included via require_once — stop here and do not redirect
 }
 
 if ($_SERVER["REQUEST_METHOD"] !== 'POST') {
@@ -159,31 +161,50 @@ if ($action === 'login') {
 // ============================================
 if ($action === 'buy') {
 
-    $book_id  = $_POST['book_id']  ?? null;
-    $quantity = $_POST['quantity'] ?? 1;
-    $user_id  = $_SESSION['user_id'];
+    // Buy does not require Login — anyone can purchase
+    $book_id   = $_POST['book_id']   ?? null;
+    $quantity  = $_POST['quantity']  ?? 1;
+    $full_name = trim($_POST['full_name'] ?? '');
+    $phone     = trim($_POST['phone']     ?? '');
+    $city      = trim($_POST['city']      ?? '');
+
+    // user_id is optional — if logged in we store it, otherwise NULL
+    $user_id = $_SESSION['user_id'] ?? null;
 
     $errors = [];
 
-    if (!$book_id)     $errors[] = "Book not found";
-    if ($quantity < 1) $errors[] = "Quantity must be at least 1";
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        $errors[] = "Security error. Please try again.";
+    }
+
+    if (!$book_id)        $errors[] = "الكتاب غير موجود";
+    if ($quantity < 1)    $errors[] = "الكمية يجب أن تكون 1 على الأقل";
+    if (empty($full_name)) $errors[] = "الاسم الكامل مطلوب";
+    if (empty($phone))    $errors[] = "رقم الهاتف مطلوب";
+    if (empty($city))     $errors[] = "المدينة مطلوبة";
 
     if (empty($errors)) {
         $stmt = $pdo->prepare("SELECT * FROM books WHERE id = ?");
         $stmt->execute([$book_id]);
         $book = $stmt->fetch();
 
-        if (!$book)                           $errors[] = "Book not found";
-        if ($book && $quantity > $book['stock']) $errors[] = "Not enough stock";
+        if (!$book)                             $errors[] = "الكتاب غير موجود";
+        if ($book && $quantity > $book['stock']) $errors[] = "الكمية المطلوبة غير متوفرة";
     }
 
     if (empty($errors)) {
         $total_price = $book['price_buy'] * $quantity;
 
-        $stmt = $pdo->prepare("INSERT INTO purchases (user_id, book_id, quantity, total_price) VALUES (?, ?, ?, ?)");
-        $stmt->execute([$user_id, $book_id, $quantity, $total_price]);
+        // Save the purchase — full_name, phone, and city in the purchases table
+        $stmt = $pdo->prepare("
+            INSERT INTO purchases (user_id, book_id, quantity, total_price, full_name, phone, city)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ");
+        $stmt->execute([$user_id, $book_id, $quantity, $total_price, $full_name, $phone, $city]);
         $purchase_id = $pdo->lastInsertId();
+        $_SESSION['last_purchase_id'] = $purchase_id;
 
+        // Decrease stock
         $stmt = $pdo->prepare("UPDATE books SET stock = stock - ? WHERE id = ?");
         $stmt->execute([$quantity, $book_id]);
 
@@ -201,42 +222,50 @@ if ($action === 'buy') {
 // ============================================
 if ($action === 'rent') {
 
-    $book_id    = $_POST['book_id']    ?? null;
-    $rent_from  = $_POST['rent_from']  ?? null;
-    $rent_until = $_POST['rent_until'] ?? null;
-    $user_id    = $_SESSION['user_id'];
+    // Rent requires login — verify here again
+    if (!isset($_SESSION['user_id'])) {
+        header("Location: ../views/login.php");
+        exit();
+    }
+
+    $book_id   = $_POST['book_id']   ?? null;
+    $full_name = trim($_POST['full_name'] ?? '');
+    $email     = trim($_POST['email']     ?? '');
+    $phone     = trim($_POST['phone']     ?? '');
+    $duration  = (int)($_POST['duration'] ?? 0);
 
     $errors = [];
 
-    if (!$book_id)    $errors[] = "Book not found";
-    if (!$rent_from)  $errors[] = "Start date is required";
-    if (!$rent_until) $errors[] = "End date is required";
-
-    if ($rent_from && $rent_until && $rent_until <= $rent_from) {
-        $errors[] = "End date must be after start date";
+    if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
+        $errors[] = "Security error. Please try again.";
     }
+
+    if (!$book_id)         $errors[] = "الكتاب غير موجود";
+    if (empty($full_name)) $errors[] = "الاسم الكامل مطلوب";
+    if (empty($email))     $errors[] = "البريد الإلكتروني مطلوب";
+    if (empty($phone))     $errors[] = "رقم الهاتف مطلوب";
+    if ($duration < 1)     $errors[] = "يجب اختيار مدة الكراء";
 
     if (empty($errors)) {
         $stmt = $pdo->prepare("SELECT * FROM books WHERE id = ?");
         $stmt->execute([$book_id]);
         $book = $stmt->fetch();
 
-        if (!$book)             $errors[] = "Book not found";
-        if ($book['stock'] < 1) $errors[] = "Book is out of stock";
+        if (!$book)             $errors[] = "الكتاب غير موجود";
+        if ($book && $book['stock'] < 1) $errors[] = "الكتاب غير متوفر";
     }
 
     if (empty($errors)) {
-        $days        = (strtotime($rent_until) - strtotime($rent_from)) / (60 * 60 * 24);
-        $total_price = $book['price_rent'] * $days;
+        // Save rent data in session and redirect to payment page
+        $_SESSION['rent_data'] = [
+            'book_id'   => $book_id,
+            'full_name' => $full_name,
+            'email'     => $email,
+            'phone'     => $phone,
+            'duration'  => $duration,
+        ];
 
-        $stmt = $pdo->prepare("INSERT INTO rentals (user_id, book_id, rent_from, rent_until, total_price) VALUES (?, ?, ?, ?, ?)");
-        $stmt->execute([$user_id, $book_id, $rent_from, $rent_until, $total_price]);
-        $rental_id = $pdo->lastInsertId();
-
-        $stmt = $pdo->prepare("UPDATE books SET stock = stock - 1 WHERE id = ?");
-        $stmt->execute([$book_id]);
-
-        header("Location: ../views/order_confirmation.php?type=rent&id={$rental_id}");
+        header("Location: ../views/payment.php");
         exit();
     }
 

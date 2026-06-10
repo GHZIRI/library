@@ -4,7 +4,6 @@
  * 
  * Sets sessions and allows admin access only.
  */
-
 session_start();
 
 // Import database connection
@@ -34,8 +33,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             // Find admin user
             $stmt = $pdo->prepare("
-                SELECT user_id, name_user, email, password, role 
-                FROM users 
+                SELECT id, full_name, email, password, role
+                FROM users
                 WHERE email = ? AND role = 'admin'
             ");
             
@@ -53,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error_message = 'Incorrect email or password.';
             } else {
                 if ($debug_mode) {
-                    $debug_message .= " - User found: " . $admin['name_user'];
+                    $debug_message .= " - User found: " . $admin['full_name'];
                 }
                 
                 // Verify password
@@ -65,11 +64,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 if ($password_match) {
                     // Set session variables
-                    $_SESSION['user_id'] = $admin['user_id'];
-                    $_SESSION['role'] = $admin['role'];
+                    $_SESSION['user_id'] = $admin['id'];
+                    $_SESSION['user_name'] = $admin['full_name'];
+                    $_SESSION['user_role'] = $admin['role'];
                     $_SESSION['admin_logged_in'] = true;
-                    $_SESSION['admin_id'] = $admin['user_id'];
-                    $_SESSION['admin_name'] = $admin['name_user'];
+                    $_SESSION['admin_id'] = $admin['id'];
+                    $_SESSION['admin_name'] = $admin['full_name'];
                     
                     // Redirect to dashboard
                     header('Location: dashboard.php');
