@@ -2,28 +2,33 @@
 session_start();
 require_once '../core/db.php';
 
-if(!isset($_SESSION['user_id'])){
-    header("Location: login.php");
-    exit();
-}
-
-$typ = $_GET['type'] ?? null; // Fix: $_GET('type') → $_GET['type']  (Fatal Error)
+$typ = $_GET['type'] ?? null;
 $id  = $_GET['id']   ?? null;
 
-if(!$typ || !$id){
+if (!$typ || !$id) {
     header("Location: catalogue.php");
     exit();
 }
 
-if($typ === 'buy'){
+// للـ rent نحتاج login، للـ buy لا نحتاج
+if ($typ === 'rent' && !isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit();
+}
+if ($typ === 'buy') {
+    if (($_SESSION['last_purchase_id'] ?? null) != $id) {
+        header("Location: catalogue.php");
+        exit();
+    }
+
+    // للـ buy لا نشترط user_id — نجلب الطلب بـ ID فقط
     $stmt = $pdo->prepare("
         SELECT purchases.*, books.title, books.author
         FROM purchases
         JOIN books ON purchases.book_id = books.id
         WHERE purchases.id = ?
-        AND purchases.user_id = ?
     ");
-    $stmt->execute([$id, $_SESSION['user_id']]); // Fix: was execute($id, ...) missing array wrapper
+    $stmt->execute([$id]);
     $order = $stmt->fetch();
 }
 
@@ -58,8 +63,13 @@ if(!isset($order) || !$order){
         <h1>📚 Library</h1>
         <div class="nav-links">
             <a href="catalogue.php">Catalogue</a>
-            <a href="user_dashboard.php">My Account</a>
-            <a href="../core/logout.php">Logout</a>
+            <?php if(isset($_SESSION['user_id'])): ?>
+                <a href="user_dashboard.php">My Account</a>
+                <a href="../core/logout.php">Logout</a>
+            <?php else: ?>
+                <a href="login.php">Login</a>
+                <a href="register.php">Register</a>
+            <?php endif; ?>
         </div>
     </nav>
 
@@ -115,7 +125,9 @@ if(!isset($order) || !$order){
 
         <div class="confirmation-actions">
             <a href="catalogue.php" class="btn-primary">Continue Shopping</a>
-            <a href="user_dashboard.php" class="btn-secondary">My Account</a>
+            <?php if(isset($_SESSION['user_id'])): ?>
+                <a href="user_dashboard.php" class="btn-secondary">My Account</a>
+            <?php endif; ?>
         </div>
     </div>
 

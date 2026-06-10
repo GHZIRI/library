@@ -2,13 +2,10 @@
 session_start();
 require_once '../core/db.php';
 
-
-
 if (!isset($_SESSION['user_id'])) {
     header("Location: ../views/login.php");
     exit();
 }
-
 
 if ($_SESSION['user_role'] !== 'admin') {
     header("Location: ../views/catalogue.php");
@@ -17,35 +14,36 @@ if ($_SESSION['user_role'] !== 'admin') {
 
 
 
+
 $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM users WHERE role = 'user'");
 $stmt->execute();
 $total_users = $stmt->fetch()['total'];
 
-// عدد الكتب
+// Total books count
 $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM books");
 $stmt->execute();
 $total_books = $stmt->fetch()['total'];
 
-// عدد المشتريات
+// Total purchases count
 $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM purchases");
 $stmt->execute();
 $total_purchases = $stmt->fetch()['total'];
 
-// عدد الاستئجارات
+// Total rentals count
 $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM rentals");
 $stmt->execute();
 $total_rentals = $stmt->fetch()['total'];
 
-// إجمالي الأرباح من المشتريات
+// Total revenue from purchases
 $stmt = $pdo->prepare("SELECT SUM(total_price) as total FROM purchases");
 $stmt->execute();
 $total_revenue = $stmt->fetch()['total'] ?? 0;
 
 
 $stmt = $pdo->prepare("
-    SELECT purchases.*, users.full_name, books.title
+    SELECT purchases.*, COALESCE(purchases.full_name, users.full_name, 'Guest') AS customer_name, books.title
     FROM purchases
-    JOIN users ON purchases.user_id = users.id
+    LEFT JOIN users ON purchases.user_id = users.id
     JOIN books ON purchases.book_id = books.id
     ORDER BY purchases.purchased_at DESC
     LIMIT 5
@@ -79,8 +77,6 @@ $last_users = $stmt->fetchAll();
     <h1> Library Admin</h1>
     <div class="nav-links">
         <a href="dashboard.php">Dashboard</a>
-        <a href="books.php">Books</a>
-        <a href="users.php">Users</a>
         <a href="../core/logout.php">Logout</a>
     </div>
 </nav>
@@ -138,11 +134,11 @@ $last_users = $stmt->fetchAll();
                 <tbody>
                     <?php foreach ($last_purchases as $purchase) { ?>
                         <tr>
-                            <td><?php htmlspecialchars($purchase['full_name']) ?></td>
-                            <td><?php htmlspecialchars($purchase['title']) ?></td>
-                            <td><?php $purchase['quantity'] ?></td>
-                            <td><?php $purchase['total_price'] ?> MAD</td>
-                            <td><?php date('d/m/Y', strtotime($purchase['purchased_at'])) ?></td>
+                            <td><?= htmlspecialchars($purchase['customer_name']) ?></td>
+                            <td><?= htmlspecialchars($purchase['title']) ?></td>
+                            <td><?= $purchase['quantity'] ?></td>
+                            <td><?= $purchase['total_price'] ?> MAD</td>
+                            <td><?= date('d/m/Y', strtotime($purchase['purchased_at'])) ?></td>
                         </tr>
                     <?php } ?>
                 </tbody>
@@ -168,9 +164,9 @@ $last_users = $stmt->fetchAll();
                 <tbody>
                     <?php foreach ($last_users as $user) { ?>
                         <tr>
-                            <td><?php htmlspecialchars($user['full_name']) ?></td>
-                            <td><?php htmlspecialchars($user['email']) ?></td>
-                            <td><?php date('d/m/Y', strtotime($user['created_at'])) ?></td>
+                            <td><?= htmlspecialchars($user['full_name']) ?></td>
+                            <td><?= htmlspecialchars($user['email']) ?></td>
+                            <td><?= date('d/m/Y', strtotime($user['created_at'])) ?></td>
                         </tr>
                     <?php } ?>
                 </tbody>

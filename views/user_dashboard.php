@@ -101,16 +101,22 @@ $rentals = $stmt->fetchAll();
             <table class="data-table">
                 <thead>
                     <tr>
-                        <th>Book</th>
-                        <th>Author</th>
-                        <th>From</th>
-                        <th>Until</th>
-                        <th>Total</th>
-                        <th>Status</th>
+                        <th>الكتاب</th>
+                        <th>المؤلف</th>
+                        <th>من</th>
+                        <th>حتى</th>
+                        <th>الإجمالي</th>
+                        <th>الحالة</th>
+                        <th>قراءة</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach($rentals as $rental): ?>
+                        <?php
+                            $is_active_rental = $rental['paid'] == 1
+                                && $rental['status'] === 'active'
+                                && $rental['rent_until'] >= date('Y-m-d');
+                        ?>
                         <tr>
                             <td><?= htmlspecialchars($rental['title']) ?></td>
                             <td><?= htmlspecialchars($rental['author']) ?></td>
@@ -118,10 +124,19 @@ $rentals = $stmt->fetchAll();
                             <td><?= date('d/m/Y', strtotime($rental['rent_until'])) ?></td>
                             <td><?= $rental['total_price'] ?> MAD</td>
                             <td>
-                                <?php if($rental['status'] === 'active'): ?>
+                                <?php if($is_active_rental): ?>
                                     <span class="status-active">Active</span>
+                                <?php elseif($rental['rent_until'] < date('Y-m-d')): ?>
+                                    <span class="status-returned">Expired</span>
                                 <?php else: ?>
                                     <span class="status-returned">Returned</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if($is_active_rental): ?>
+                                    <a href="read_book.php?id=<?= $rental['book_id'] ?>" style="color: #2e7d32; font-weight: 600;">📖 اقرأ</a>
+                                <?php else: ?>
+                                    <span style="color: #999; font-size: 13px;">غير مدفوع</span>
                                 <?php endif; ?>
                             </td>
                         </tr>

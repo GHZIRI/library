@@ -1,151 +1,145 @@
 <?php
-session_start();
-require_once '../core/db.php';
+// rent.php — The user must be logged in
+require_once '../core/functions.php';
 
-
+// If not logged in, redirect to the login page
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit();
 }
 
-
+// Get the book ID from the URL
 $book_id = $_GET['id'] ?? null;
-
-
 if (!$book_id) {
     header("Location: catalogue.php");
     exit();
 }
 
-
+// Fetch book data
 $stmt = $pdo->prepare("SELECT * FROM books WHERE id = ?");
 $stmt->execute([$book_id]);
 $book = $stmt->fetch();
-
 
 if (!$book) {
     header("Location: catalogue.php");
     exit();
 }
 
+// Fetch current user data
+$stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
+$stmt->execute([$_SESSION['user_id']]);
+$user = $stmt->fetch();
 
-$today   = date('Y-m-d');
-$max_date = date('Y-m-d', strtotime('+30 days'));
+// Get errors from the session if they exist
+$errors = $_SESSION['errors'] ?? [];
+unset($_SESSION['errors']);
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>Rent - <?= htmlspecialchars($book['title']) ?></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>كراء - <?= htmlspecialchars($book['title']) ?></title>
     <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body>
 
-
 <nav class="navbar">
-    <h1>Library</h1>
+    <h1>📚 Library</h1>
     <div class="nav-links">
-        <a href="catalogue.php">Catalogue</a>
-        <a href="user_dashboard.php">My Account</a>
-        <a href="../core/logout.php">Logout</a>
+        <a href="catalogue.php">الكتالوج</a>
+        <a href="user_dashboard.php">حسابي</a>
+        <a href="../core/logout.php">خروج</a>
     </div>
 </nav>
 
 <div class="rent-container">
 
-    <h2> Rent Book</h2>
+    <h2>📖 كراء كتاب</h2>
 
-    
+    <!-- Book information -->
     <div class="book-summary">
         <h3><?= htmlspecialchars($book['title']) ?></h3>
-        <p> <?= htmlspecialchars($book['author']) ?></p>
-        <p> Price per day: <strong><?= $book['price_rent'] ?> MAD</strong></p>
-        <p> Stock: <strong><?= $book['stock'] ?></strong></p>
+        <p><?= htmlspecialchars($book['author']) ?></p>
+        <p>السعر اليومي: <strong><?= $book['price_rent'] ?> درهم/يوم</strong></p>
+        <p>المخزون: <strong><?= $book['stock'] ?></strong></p>
     </div>
 
-    <?php
-  
-    $errors = $_SESSION['errors'] ?? [];
-    unset($_SESSION['errors']);
-    if (!empty($errors)) {
-        foreach ($errors as $error) {
-            echo "<p class='error'> {$error}</p>";
-        }
-    }
+    <!-- Error messages -->
+    <?php if (!empty($errors)): ?>
+        <?php foreach ($errors as $error): ?>
+            <p class="error"><?= htmlspecialchars($error) ?></p>
+        <?php endforeach; ?>
+    <?php endif; ?>
 
-    
-    if (isset($_GET['success'])) {
-        echo "<p class='success'> Rental confirmed! <a href='user_dashboard.php'>View your rentals</a></p>";
-    }
-    ?>
-
-    
-    <?php if ($book['stock'] > 0) { ?>
+    <?php if ($book['stock'] > 0): ?>
 
         <form action="../core/functions.php" method="POST">
-
             <input type="hidden" name="action"  value="rent">
             <input type="hidden" name="book_id" value="<?= $book['id'] ?>">
+            <input type="hidden" name="csrf_token" value="<?= generateCsrfToken() ?>">
 
-            <!-- تاريخ البداية -->
+            <!-- Full name — auto-filled from the account -->
             <div class="form-group">
-                <label>Start Date</label>
-                <input type="date" name="rent_from"
-                       min="<?= $today ?>"
-                       value="<?= $today ?>"
-                       required>
+                <label>الاسم الكامل *</label>
+                <input type="text" name="full_name"
+                       value="<?= htmlspecialchars($user['full_name']) ?>"
+                       placeholder="أدخل اسمك الكامل" required>
             </div>
 
-            
+            <!-- Email — auto-filled from the account -->
             <div class="form-group">
-                <label>End Date</label>
-                <input type="date" name="rent_until"
-                       min="<?= $today ?>"
-                       max="<?= $max_date ?>"
-                       required>
+                <label>البريد الإلكتروني *</label>
+                <input type="email" name="email"
+                       value="<?= htmlspecialchars($user['email']) ?>"
+                       placeholder="example@email.com" required>
             </div>
 
-          
+            <!-- Phone number -->
+            <div class="form-group">
+                <label>رقم الهاتف *</label>
+                <input type="text" name="phone" placeholder="مثال: 0612345678" required>
+            </div>
+
+            <!-- Rent duration — dropdown selection -->
+            <div class="form-group">
+                <label>مدة الكراء *</label>
+                <select name="duration" id="duration" required>
+                    <option value="">-- اختر المدة --</option>
+                    <option value="3">3 أيام</option>
+                    <option value="7">أسبوع (7 أيام)</option>
+                    <option value="14">أسبوعان (14 يوم)</option>
+                    <option value="30">شهر (30 يوم)</option>
+                </select>
+            </div>
+
+            <!-- Total price calculation display -->
             <div class="price-calculator">
-                <p>Price per day: <strong><?= $book['price_rent'] ?> MAD</strong></p>
-                <p>Total: <strong id="total-price">0 MAD</strong></p>
+                <p>السعر اليومي: <strong><?= $book['price_rent'] ?> درهم</strong></p>
+                <p>السعر الإجمالي: <strong id="total-price">0 درهم</strong></p>
             </div>
 
-            <button type="submit" class="btn-primary"> Confirm Rental</button>
-
+            <button type="submit" class="btn-primary">➡ المتابعة للدفع</button>
         </form>
 
-    <?php } else { ?>
-        <p class="out-stock"> This book is out of stock.</p>
-    <?php } ?>
+    <?php else: ?>
+        <p class="out-stock">❌ هذا الكتاب غير متوفر حالياً.</p>
+    <?php endif; ?>
 
-    <a href="catalogue.php" class="btn-back">⬅ Back to Catalogue</a>
+    <a href="catalogue.php" class="btn-back">⬅ العودة للكتالوج</a>
 
 </div>
 
-
 <script>
+    // Automatically calculate the total price when selecting the duration
     const pricePerDay = <?= $book['price_rent'] ?>;
-    const fromInput   = document.querySelector('input[name="rent_from"]');
-    const untilInput  = document.querySelector('input[name="rent_until"]');
-    const totalDiv    = document.getElementById('total-price');
+    const durationSelect = document.getElementById('duration');
+    const totalDiv = document.getElementById('total-price');
 
-    function calculatePrice() {
-        const from  = new Date(fromInput.value);
-        const until = new Date(untilInput.value);
-
-       
-        const days = Math.ceil((until - from) / (1000 * 60 * 60 * 24));
-
-        if (days > 0) {
-            totalDiv.textContent = (days * pricePerDay) + ' MAD';
-        } else {
-            totalDiv.textContent = '0 MAD';
-        }
-    }
-
-    fromInput.addEventListener('change', calculatePrice);
-    untilInput.addEventListener('change', calculatePrice);
+    durationSelect.addEventListener('change', function () {
+        const days = parseInt(this.value) || 0;
+        totalDiv.textContent = (days * pricePerDay) + ' درهم';
+    });
 </script>
 
 </body>
